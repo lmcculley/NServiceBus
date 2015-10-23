@@ -317,7 +317,9 @@ namespace NServiceBus
     public class FileBasedTransport : NServiceBus.Transports.TransportDefinition
     {
         public FileBasedTransport() { }
-        protected internal override void Configure(NServiceBus.BusConfiguration config) { }
+        public override string ExampleConnectionStringForErrorMessage { get; }
+        protected internal override void ConfigureForReceiving(NServiceBus.Transports.TransportReceivingConfigurationContext context) { }
+        protected internal override void ConfigureForSending(NServiceBus.Transports.TransportSendingConfigurationContext context) { }
         public override string GetDiscriminatorForThisEndpointInstance() { }
         public override NServiceBus.Transports.OutboundRoutingPolicy GetOutboundRoutingPolicy(NServiceBus.Settings.ReadOnlySettings settings) { }
         public override NServiceBus.Transports.IManageSubscriptions GetSubscriptionManager() { }
