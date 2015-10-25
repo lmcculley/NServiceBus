@@ -18,7 +18,6 @@
     {
         internal MsmqTransportConfigurator()
         {
-            EnableByDefault();
             DependsOn<UnicastBus>();
             DependsOn<Receiving>();
             RegisterStartupTask<CheckQueuePermissions>();
