@@ -1,6 +1,7 @@
 namespace NServiceBus.Transports
 {
     using NServiceBus.Features;
+    using NServiceBus.Settings;
 
     class Sending : Feature
     {
@@ -8,8 +9,9 @@ namespace NServiceBus.Transports
         {
             EnableByDefault();
             DependsOn<UnicastBus>();
+            RegisterStartupTask<PerformTransportStartUpTests>();
         }
-
+        
         protected internal override void Setup(FeatureConfigurationContext context)
         {
             var transport = context.Settings.Get<OutboundTransport>();
@@ -20,5 +22,24 @@ namespace NServiceBus.Transports
                 return dispatcher;
             }, DependencyLifecycle.SingleInstance);
         }
+
+        class PerformTransportStartUpTests : FeatureStartupTask
+        {
+            ReadOnlySettings settings;
+
+            public PerformTransportStartUpTests(ReadOnlySettings settings)
+            {
+                this.settings = settings;
+            }
+
+            protected override void OnStart()
+            {
+                var queueBindings = settings.Get<QueueBindings>();
+                var transportDef = settings.Get<TransportDefinition>();
+
+                transportDef.PerformStartUpChecks(new TransportStartUpCheckContext(settings, queueBindings));
+            }
+        }
+
     }
 }

@@ -60,6 +60,10 @@
             {
             }
 
+            protected override void PerformStartUpChecks(TransportStartUpCheckContext context)
+            {
+            }
+
             public override IEnumerable<Type> GetSupportedDeliveryConstraints()
             {
                 return new List<Type>();

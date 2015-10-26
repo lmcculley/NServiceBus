@@ -35,6 +35,11 @@ namespace NServiceBus.Transports
         protected internal abstract void ConfigureForSending(TransportSendingConfigurationContext context);
 
         /// <summary>
+        /// Performs start-up checks specific to a given transport (e.g. checking queue permissions).
+        /// </summary>
+        protected internal abstract void PerformStartUpChecks(TransportStartUpCheckContext context);
+
+        /// <summary>
         /// Returns the list of supported delivery constraints for this transport.
         /// </summary>
         public abstract IEnumerable<Type> GetSupportedDeliveryConstraints();

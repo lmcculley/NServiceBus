@@ -686,6 +686,7 @@ namespace NServiceBus
         public override NServiceBus.Transports.IManageSubscriptions GetSubscriptionManager() { }
         public override System.Collections.Generic.IEnumerable<System.Type> GetSupportedDeliveryConstraints() { }
         public override NServiceBus.Transports.TransactionSupport GetTransactionSupport() { }
+        protected internal override void PerformStartUpChecks(NServiceBus.Transports.TransportStartUpCheckContext context) { }
         public override string ToTransportAddress(NServiceBus.LogicalAddress logicalAddress) { }
     }
     public class NonDurableDelivery : NServiceBus.DeliveryConstraints.DeliveryConstraint
@@ -1493,10 +1494,6 @@ namespace NServiceBus.Features
         protected internal override void Setup(NServiceBus.Features.FeatureConfigurationContext context) { }
     }
     public class MsmqSubscriptionPersistence : NServiceBus.Features.Feature
-    {
-        protected internal override void Setup(NServiceBus.Features.FeatureConfigurationContext context) { }
-    }
-    public class MsmqTransportConfigurator : NServiceBus.Features.Feature
     {
         protected internal override void Setup(NServiceBus.Features.FeatureConfigurationContext context) { }
     }
@@ -2696,6 +2693,7 @@ namespace NServiceBus.Transports
         public abstract NServiceBus.Transports.IManageSubscriptions GetSubscriptionManager();
         public abstract System.Collections.Generic.IEnumerable<System.Type> GetSupportedDeliveryConstraints();
         public abstract NServiceBus.Transports.TransactionSupport GetTransactionSupport();
+        protected internal abstract void PerformStartUpChecks(NServiceBus.Transports.TransportStartUpCheckContext context);
         public abstract string ToTransportAddress(NServiceBus.LogicalAddress logicalAddress);
     }
     public class TransportOperation
@@ -2718,6 +2716,12 @@ namespace NServiceBus.Transports
         public NServiceBus.Extensibility.ContextBag ExtensionSettings { get; }
         public NServiceBus.Settings.ReadOnlySettings GlobalSettings { get; }
         public void SetDispatcherFactory(System.Func<NServiceBus.Transports.IDispatchMessages> dispatcherFactory) { }
+    }
+    public class TransportStartUpCheckContext
+    {
+        public TransportStartUpCheckContext(NServiceBus.Settings.ReadOnlySettings settings, NServiceBus.Transports.QueueBindings queueBindings) { }
+        public NServiceBus.Transports.QueueBindings QueueBindings { get; }
+        public NServiceBus.Settings.ReadOnlySettings Settings { get; }
     }
 }
 namespace NServiceBus.Transports.Msmq.Config

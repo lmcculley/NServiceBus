@@ -382,6 +382,7 @@
     <Compile Include="IEvent.cs" />
     <Compile Include="IMessage.cs" />
     <Compile Include="IMessageCreator.cs" />
+    <Compile Include="Transports\TransportStartUpCheckContext.cs" />
     <Compile Include="Unicast\StartAndStoppablesRunner.cs" />
     <Compile Include="Unicast\Transport\Config\InboundTransport.cs" />
     <Compile Include="Unicast\Transport\Config\OutboundTransport.cs" />
@@ -555,7 +556,6 @@
     <Compile Include="Serializers\Json\Config\JsonSerializerConfigurationExtensions.cs" />
     <Compile Include="Serializers\XML\Config\XmlSerialization.cs" />
     <Compile Include="Settings\ScaleOutSettings.cs" />
-    <Compile Include="Transports\Msmq\MsmqTransportConfigurator.cs" />
     <Compile Include="Pipeline\Incoming\DeserializeLogicalMessagesConnector.cs" />
     <Compile Include="Licensing\ConfigureLicenseExtensions.cs" />
     <Compile Include="DelayedDelivery\TimeoutManager\TimeoutManager.cs" />

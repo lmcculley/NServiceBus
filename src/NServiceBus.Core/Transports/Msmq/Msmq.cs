@@ -2,15 +2,21 @@ namespace NServiceBus
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Linq;
+    using System.Messaging;
+    using System.Security;
     using System.Text;
     using System.Transactions;
     using NServiceBus.Features;
+    using NServiceBus.Logging;
     using NServiceBus.Performance.TimeToBeReceived;
     using NServiceBus.Settings;
     using NServiceBus.Support;
     using NServiceBus.Transports;
     using NServiceBus.Transports.Msmq;
     using NServiceBus.Transports.Msmq.Config;
+    using NServiceBus.Utils;
     using TransactionSettings = NServiceBus.Unicast.Transport.TransactionSettings;
 
     /// <summary>
@@ -77,6 +83,63 @@ namespace NServiceBus
             MsmqLabelGenerator messageLabelGenerator;
             context.ExtensionSettings.TryGet(out messageLabelGenerator);
             context.SetDispatcherFactory(() => new MsmqMessageSender(settings, messageLabelGenerator));
+        }
+
+        /// <summary>
+        /// Performs start-up checks specific to a given transport (e.g. checking queue permissions).
+        /// </summary>
+        protected internal override void PerformStartUpChecks(TransportStartUpCheckContext context)
+        {
+            var boundQueueAddresses = context.QueueBindings.ReceivingAddresses.Concat(context.QueueBindings.SendingAddresses);
+
+            foreach (var address in boundQueueAddresses)
+            {
+                CheckQueue(address);
+            }
+        }
+
+        static void CheckQueue(string address)
+        {
+            var msmqAddress = MsmqAddress.Parse(address);
+            var queuePath = msmqAddress.PathWithoutPrefix;
+
+            if (MessageQueue.Exists(queuePath))
+            {
+                using (var messageQueue = new MessageQueue(queuePath))
+                {
+                    WarnIfPublicAccess(messageQueue);
+                }
+            }
+        }
+
+        static void WarnIfPublicAccess(MessageQueue queue)
+        {
+            MessageQueueAccessRights? everyoneRights, anonymousRights;
+            var logger = LogManager.GetLogger<MsmqTransport>();
+            try
+            {
+                queue.TryGetPermissions(QueueCreator.LocalAnonymousLogonName, out anonymousRights);
+                queue.TryGetPermissions(QueueCreator.LocalEveryoneGroupName, out everyoneRights);
+            }
+            catch (SecurityException se)
+            {
+                logger.Warn($"Unable to read permissions for queue [{queue.QueueName}]. Make sure you have administrative access on the target machine", se);
+                return;
+            }
+
+            if (anonymousRights.HasValue && everyoneRights.HasValue)
+            {
+                var logMessage = $"Queue [{queue.QueueName}] is running with [{QueueCreator.LocalEveryoneGroupName}] and [{QueueCreator.LocalAnonymousLogonName}] permissions. Consider setting appropriate permissions, if required by your organization. For more information, please consult the documentation.";
+
+                if (Debugger.IsAttached)
+                {
+                    logger.Info(logMessage);
+                }
+                else
+                {
+                    logger.Warn(logMessage);
+                }
+            }
         }
 
         /// <summary>

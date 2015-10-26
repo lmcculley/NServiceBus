@@ -80,6 +80,10 @@
                 context.SetDispatcherFactory(() => new FakeDispatcher());
             }
 
+            protected override void PerformStartUpChecks(TransportStartUpCheckContext context)
+            {
+            }
+
             public override IEnumerable<Type> GetSupportedDeliveryConstraints()
             {
                 yield break;
