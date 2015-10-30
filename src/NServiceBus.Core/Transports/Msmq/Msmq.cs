@@ -103,7 +103,7 @@ namespace NServiceBus
         /// </summary>
         public override IManageSubscriptions GetSubscriptionManager()
         {
-            throw new NotSupportedException("Msmq don't support native pub sub");
+            throw new NotSupportedException("Msmq doesn't support native pub sub.");
         }
 
         /// <summary>
