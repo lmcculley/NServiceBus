@@ -142,7 +142,7 @@ namespace NServiceBus.Encryption.Rijndael
         {
             if (string.IsNullOrEmpty(encryptionKeyIdentifier))
             {
-                throw new InvalidOperationException("It is required to set the rijndael key identifer.");
+                throw new InvalidOperationException("It is required to set the rijndael key identifier.");
             }
 
             AddKeyIdentifierHeader(context);
