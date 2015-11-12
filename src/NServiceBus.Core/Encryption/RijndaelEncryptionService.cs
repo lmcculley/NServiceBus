@@ -32,17 +32,17 @@ namespace NServiceBus.Encryption.Rijndael
     using System.IO;
     using System.Security.Cryptography;
     using NServiceBus.Logging;
+    using NServiceBus.Pipeline.Contexts;
+    using NServiceBus.TransportDispatch;
 
     class RijndaelEncryptionService : IEncryptionService
     {
         static readonly ILog Log = LogManager.GetLogger<RijndaelEncryptionService>();
-        readonly IBus bus;
         readonly string encryptionKeyIdentifier;
         byte[] encryptionKey;
         IDictionary<string, byte[]> keys;
         IList<byte[]> decryptionKeys; // Required, as we decrypt in the configured order.
     
-
     public RijndaelEncryptionService(
             IBus bus,
             string encryptionKeyIdentifier,
@@ -50,7 +50,6 @@ namespace NServiceBus.Encryption.Rijndael
             IList<byte[]> decryptionKeys
             )
         {
-            this.bus = bus;
             this.encryptionKeyIdentifier = encryptionKeyIdentifier;
             this.decryptionKeys = decryptionKeys;
             this.keys = keys;
@@ -61,7 +60,7 @@ namespace NServiceBus.Encryption.Rijndael
             }
             else if (!keys.TryGetValue(encryptionKeyIdentifier, out encryptionKey))
             {
-                throw new ArgumentException("No encryption key for given encryption key identifier.", "encryptionKeyIdentifier");
+                throw new ArgumentException("No encryption key for given encryption key identifier.", nameof(encryptionKeyIdentifier));
             }
             else
             {
@@ -71,19 +70,16 @@ namespace NServiceBus.Encryption.Rijndael
             VerifyExpiredKeys(decryptionKeys);
         }
 
-        public string Decrypt(EncryptedValue encryptedValue)
+        public string Decrypt(EncryptedValue encryptedValue, LogicalMessageProcessingContext context)
         {
             string keyIdentifier;
 
-            if (TryGetKeyIdentifierHeader(out keyIdentifier))
+            if (TryGetKeyIdentifierHeader(out keyIdentifier, context))
             {
                 return DecryptUsingKeyIdentifier(encryptedValue, keyIdentifier);
             }
-            else
-            {
-                Log.WarnFormat("Encrypted message has no '" + Headers.RijndaelKeyIdentifier + "' header. Possibility of data corruption. Please upgrade endpoints that send message with encrypted properties.");
-                return DecryptUsingAllKeys(encryptedValue);
-            }
+            Log.WarnFormat("Encrypted message has no '" + Headers.RijndaelKeyIdentifier + "' header. Possibility of data corruption. Please upgrade endpoints that send message with encrypted properties.");
+            return DecryptUsingAllKeys(encryptedValue);
         }
 
         string DecryptUsingKeyIdentifier(EncryptedValue encryptedValue, string keyIdentifier)
@@ -142,14 +138,14 @@ namespace NServiceBus.Encryption.Rijndael
             }
         }
 
-        public EncryptedValue Encrypt(string value)
+        public EncryptedValue Encrypt(string value, OutgoingLogicalMessageContext context)
         {
             if (string.IsNullOrEmpty(encryptionKeyIdentifier))
             {
                 throw new InvalidOperationException("It is required to set the rijndael key identifer.");
             }
 
-            AddKeyIdentifierHeader();
+            AddKeyIdentifierHeader(context);
 
             using (var rijndael = new RijndaelManaged())
             {
@@ -208,19 +204,14 @@ namespace NServiceBus.Encryption.Rijndael
             }
         }
 
-        protected virtual void AddKeyIdentifierHeader()
+        protected virtual void AddKeyIdentifierHeader(OutgoingLogicalMessageContext context)
         {
-            var outgoingHeaders = bus.OutgoingHeaders;
-
-            if (!outgoingHeaders.ContainsKey(Headers.RijndaelKeyIdentifier))
-            {
-                outgoingHeaders.Add(Headers.RijndaelKeyIdentifier, encryptionKeyIdentifier);
-            }
+                context.SetHeader(Headers.RijndaelKeyIdentifier, encryptionKeyIdentifier);
         }
 
-        protected virtual bool TryGetKeyIdentifierHeader(out string keyIdentifier)
+        protected virtual bool TryGetKeyIdentifierHeader(out string keyIdentifier, LogicalMessageProcessingContext context)
         {
-            return bus.CurrentMessageContext.Headers.TryGetValue(Headers.RijndaelKeyIdentifier, out keyIdentifier);
+            return context.Headers.TryGetValue(Headers.RijndaelKeyIdentifier, out keyIdentifier);
         }
     }
 }
