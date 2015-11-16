@@ -271,6 +271,7 @@
                     CreditCard = new CreditCardDetails {CreditCardNumber = Create()}
 
                 };
+
             mutator.MutateIncoming(message);
 
             Assert.AreEqual(MySecretMessage, message.Secret.Value);
@@ -281,7 +282,7 @@
 
     public class WireEncryptedStringContext
     {
-        internal EncryptionMutator mutator;
+        internal EncryptionInspector mutator;
 
         protected string EncryptedBase64Value = "encrypted value";
         protected string MySecretMessage = "A secret";
@@ -297,8 +298,7 @@
                 EncryptedBase64Value = EncryptedBase64Value,
                 Base64Iv = "init_vector"
             };
-            var fakeEncryptionService = new FakeEncryptionService(encryptedValue);
-            mutator = new EncryptionMutator(fakeEncryptionService, conventions);
+            mutator = new EncryptionInspector(conventions);
         }
 
         protected virtual Conventions BuildConventions()
