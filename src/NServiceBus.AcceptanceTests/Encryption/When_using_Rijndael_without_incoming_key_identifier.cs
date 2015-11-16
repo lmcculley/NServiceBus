@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Text;
+    using System.Threading.Tasks;
     using EndpointTemplates;
     using AcceptanceTesting;
     using NServiceBus.MessageMutator;
@@ -59,10 +60,11 @@
             {
                 public Context Context { get; set; }
 
-                public void Handle(MessageWithSecretData message)
+                public Task Handle(MessageWithSecretData message, IMessageHandlerContext context)
                 {
                     Context.Secret = message.Secret.Value;
                     Context.Done = true;
+                    return Task.FromResult(0);
                 }
             }
         }
@@ -76,9 +78,10 @@
 
         class RemoveKeyIdentifierHeaderMutator : IMutateIncomingTransportMessages, INeedInitialization
         {
-            public void MutateIncoming(TransportMessage transportMessage)
+            public Task MutateIncoming(MutateIncomingTransportMessageContext context)
             {
-                transportMessage.Headers.Remove(Headers.RijndaelKeyIdentifier);
+                context.Headers.Remove(Headers.RijndaelKeyIdentifier);
+                return Task.FromResult(0);
             }
 
             public void Customize(BusConfiguration configuration)
