@@ -12,13 +12,13 @@ namespace NServiceBus
     {
         EncryptionInspector messageInspector;
         IEncryptionService encryptionService;
-        LogicalMessageProcessingContext context;
 
         public DecryptBehavior(EncryptionInspector messageInspector, IEncryptionService encryptionService)
         {
             this.messageInspector = messageInspector;
             this.encryptionService = encryptionService;
         }
+
         public override async Task Invoke(LogicalMessageProcessingContext context, Func<Task> next)
         {
             if (TransportMessageExtensions.IsControlMessage(context.Headers))
@@ -27,13 +27,11 @@ namespace NServiceBus
                 return;
             }
 
-            this.context = context;
-
             var current = context.Message.Instance;
 
             messageInspector.ForEachMember(
                 current,
-                DecryptMember
+                (a, b) => DecryptMember(a, b, context)
                 );
 
             context.Message.UpdateMessageInstance(current);
@@ -42,57 +40,38 @@ namespace NServiceBus
         }
 
 
-        void DecryptMember(object target, MemberInfo property)
+        void DecryptMember(object target, MemberInfo property, LogicalMessageProcessingContext context)
         {
             var encryptedValue = property.GetValue(target);
-
-            if (encryptedValue == null)
-            {
-                return;
-            }
 
             var wireEncryptedString = encryptedValue as WireEncryptedString;
             if (wireEncryptedString != null)
             {
-                Decrypt(wireEncryptedString);
-            }
-            else
-            {
-                property.SetValue(target, DecryptUserSpecifiedProperty(encryptedValue));
-            }
-        }
+                if (wireEncryptedString.EncryptedValue == null)
+                {
+                    throw new Exception("Encrypted property is missing encryption data");
+                }
 
-        string DecryptUserSpecifiedProperty(object encryptedValue)
-        {
+                wireEncryptedString.Value = encryptionService.Decrypt(wireEncryptedString.EncryptedValue, context);
+            }
+
             var stringToDecrypt = encryptedValue as string;
-
-            if (stringToDecrypt == null)
+            if (stringToDecrypt != null)
             {
-                throw new Exception("Only string properties is supported for convention based encryption, please check your convention");
+                var parts = stringToDecrypt.Split(new[] { '@' }, StringSplitOptions.None);
+
+                var result = encryptionService.Decrypt(new EncryptedValue
+                {
+                    EncryptedBase64Value = parts[0],
+                    Base64Iv = parts[1]
+                },
+                context
+                );
+
+                property.SetValue(target, result);
             }
 
-            var parts = stringToDecrypt.Split(new[] { '@' }, StringSplitOptions.None);
-
-            return Decrypt(new EncryptedValue
-            {
-                EncryptedBase64Value = parts[0],
-                Base64Iv = parts[1]
-            });
-        }
-
-        void Decrypt(WireEncryptedString encryptedValue)
-        {
-            if (encryptedValue.EncryptedValue == null)
-            {
-                throw new Exception("Encrypted property is missing encryption data");
-            }
-
-            encryptedValue.Value = Decrypt(encryptedValue.EncryptedValue);
-        }
-
-        string Decrypt(EncryptedValue value)
-        {
-            return encryptionService.Decrypt(value, context);
+            throw new Exception("Only string properties is supported for convention based encryption, please check your convention");
         }
 
         public class DecryptRegistration : RegisterStep

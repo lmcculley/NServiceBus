@@ -11,7 +11,6 @@
     {
         EncryptionInspector messageInspector;
         IEncryptionService encryptionService;
-        //OutgoingLogicalMessageContext context;
 
         public EncryptBehavior(EncryptionInspector messageInspector, IEncryptionService encryptionService)
         {
@@ -23,12 +22,9 @@
         {
             var currentMessageToSend = context.Message.Instance;
 
-            //this.context = context;
-
             messageInspector.ForEachMember(
                 currentMessageToSend,
                 (a, b) => EncryptMember(a, b, context)
-                //EncryptMember
                 );
 
             context.UpdateMessageInstance(currentMessageToSend);
@@ -41,27 +37,25 @@
             var valueToEncrypt = member.GetValue(message);
 
             var wireEncryptedString = valueToEncrypt as WireEncryptedString;
-
             if (wireEncryptedString != null)
             {
                 wireEncryptedString.EncryptedValue = encryptionService.Encrypt(wireEncryptedString.Value, context);
                 wireEncryptedString.Value = null;
+                return;
             }
-            else
+
+            var stringToEncrypt = valueToEncrypt as string;
+            if (stringToEncrypt != null)
             {
-                var stringToEncrypt = valueToEncrypt as string;
-
-                if (stringToEncrypt == null)
-                {
-                    throw new Exception("Only string properties is supported for convention based encryption, please check your convention");
-                }
-
                 var encryptedValue = encryptionService.Encrypt(stringToEncrypt, context);
 
                 var result = $"{encryptedValue.EncryptedBase64Value}@{encryptedValue.Base64Iv}";
 
                 member.SetValue(message, result);
+                return;
             }
+
+            throw new Exception("Only string properties is supported for convention based encryption, please check your convention");
         }
 
         public class EncryptRegistration : RegisterStep
