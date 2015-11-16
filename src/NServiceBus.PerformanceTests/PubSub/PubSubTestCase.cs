@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Security.Principal;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -46,9 +47,9 @@ public class PubSubTestCase : TestCase
         TransportConfigOverride.MaximumConcurrencyLevel = NumberOfThreads;
 
         var configuration = new BusConfiguration();
-
+        var key = Encoding.ASCII.GetBytes("gdDbqRpqdRbTs3mhdZh9qCaDaxJXl+e6");
         configuration.EndpointName("PubSubPerformanceTest");
-        configuration.RijndaelEncryptionService("gdDbqRpqdRbTs3mhdZh9qCaDaxJXl+e6");
+        configuration.RijndaelEncryptionService("ID", key);
         configuration.EnableInstallers();
         configuration.UseTransport<MsmqTransport>();
         configuration.DisableFeature<Audit>();
