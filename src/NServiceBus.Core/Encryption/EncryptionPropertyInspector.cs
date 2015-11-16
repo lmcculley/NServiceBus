@@ -9,30 +9,15 @@ namespace NServiceBus.Encryption
     using Logging;
     using Utils.Reflection;
 
-    class EncryptionMutator
+    class EncryptionPropertyInspector
     {
-        IEncryptionService encryptionService;
         Conventions conventions;
 
-        public EncryptionMutator(IEncryptionService encryptionService, Conventions conventions)
+        public EncryptionPropertyInspector(Conventions conventions)
         {
-            this.encryptionService = encryptionService;
             this.conventions = conventions;
         }
 
-        public object MutateOutgoing(object message)
-        {
-            ForEachMember(message, EncryptMember, IsEncryptedMember);
-
-            return message;
-        }
-
-        public object MutateIncoming(object message)
-        {
-            ForEachMember(message, DecryptMember, IsEncryptedMember);
-
-            return message;
-        }
 
         static bool IsIndexedProperty(MemberInfo member)
         {
@@ -68,7 +53,7 @@ namespace NServiceBus.Encryption
             return false;
         }
 
-        void ForEachMember(object root, Action<object, MemberInfo> action, Func<MemberInfo, bool> appliesTo)
+        public void ForEachMember(object root, Action<object, MemberInfo> action)
         {
             if (root == null || visitedMembers.Contains(root))
             {
@@ -81,7 +66,7 @@ namespace NServiceBus.Encryption
 
             foreach (var member in members)
             {
-                if (appliesTo(member))
+                if (IsEncryptedMember(member))
                 {
                     action(root, member);
                 }
@@ -121,108 +106,16 @@ namespace NServiceBus.Encryption
                             break;
                         }
 
-                        ForEachMember(item, action, appliesTo);
+                        ForEachMember(item, action);
                     }
                 }
                 else
                 {
-                    ForEachMember(child, action, appliesTo);
+                    ForEachMember(child, action);
                 }
             }
         }
 
-        void EncryptMember(object target, MemberInfo member)
-        {
-            var valueToEncrypt = member.GetValue(target);
-
-            if (valueToEncrypt == null)
-            {
-                return;
-            }
-
-            var wireEncryptedString = valueToEncrypt as WireEncryptedString;
-            if (wireEncryptedString != null)
-            {
-                var encryptedString = wireEncryptedString;
-                EncryptWireEncryptedString(encryptedString);
-            }
-            else
-            {
-                member.SetValue(target, EncryptUserSpecifiedProperty(valueToEncrypt));
-            }
-
-            Log.Debug(member.Name + " encrypted successfully");
-        }
-
-        void DecryptMember(object target, MemberInfo property)
-        {
-            var encryptedValue = property.GetValue(target);
-
-            if (encryptedValue == null)
-            {
-                return;
-            }
-
-            var wireEncryptedString = encryptedValue as WireEncryptedString;
-            if (wireEncryptedString != null)
-            {
-                Decrypt(wireEncryptedString);
-            }
-            else
-            {
-                property.SetValue(target, DecryptUserSpecifiedProperty(encryptedValue));
-            }
-
-            Log.Debug(property.Name + " decrypted successfully");
-        }
-
-        string DecryptUserSpecifiedProperty(object encryptedValue)
-        {
-            var stringToDecrypt = encryptedValue as string;
-
-            if (stringToDecrypt == null)
-            {
-                throw new Exception("Only string properties is supported for convention based encryption, please check your convention");
-            }
-
-            var parts = stringToDecrypt.Split(new[] { '@' }, StringSplitOptions.None);
-
-            return encryptionService.Decrypt(new EncryptedValue
-            {
-                EncryptedBase64Value = parts[0],
-                Base64Iv = parts[1]
-            });
-        }
-
-        void Decrypt(WireEncryptedString encryptedValue)
-        {
-            if (encryptedValue.EncryptedValue == null)
-            {
-                throw new Exception("Encrypted property is missing encryption data");
-            }
-
-            encryptedValue.Value = encryptionService.Decrypt(encryptedValue.EncryptedValue);
-        }
-
-        string EncryptUserSpecifiedProperty(object valueToEncrypt)
-        {
-            var stringToEncrypt = valueToEncrypt as string;
-
-            if (stringToEncrypt == null)
-            {
-                throw new Exception("Only string properties is supported for convention based encryption, please check your convention");
-            }
-
-            var encryptedValue = encryptionService.Encrypt(stringToEncrypt);
-
-            return $"{encryptedValue.EncryptedBase64Value}@{encryptedValue.Base64Iv}";
-        }
-
-        void EncryptWireEncryptedString(WireEncryptedString wireEncryptedString)
-        {
-            wireEncryptedString.EncryptedValue = encryptionService.Encrypt(wireEncryptedString.Value);
-            wireEncryptedString.Value = null;
-        }
 
         static IEnumerable<MemberInfo> GetFieldsAndProperties(object target)
         {

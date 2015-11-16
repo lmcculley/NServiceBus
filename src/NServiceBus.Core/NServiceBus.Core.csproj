@@ -604,7 +604,7 @@
     <Compile Include="DataBus\IDatabusSerializer.cs" />
     <Compile Include="DateTimeExtensions.cs" />
     <Compile Include="DependencyLifecycle.cs" />
-    <Compile Include="Encryption\EncryptionMutator.cs" />
+    <Compile Include="Encryption\EncryptionPropertyInspector.cs" />
     <Compile Include="Encryption\IEncryptionService.cs" />
     <Compile Include="Recoverability\Faults\FaultsHeaderKeys.cs" />
     <Compile Include="Hosting\Helpers\AssemblyScanner.cs" />

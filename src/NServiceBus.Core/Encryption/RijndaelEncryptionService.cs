@@ -42,13 +42,13 @@ namespace NServiceBus.Encryption.Rijndael
         byte[] encryptionKey;
         IDictionary<string, byte[]> keys;
         IList<byte[]> decryptionKeys; // Required, as we decrypt in the configured order.
-    
-    public RijndaelEncryptionService(
-            IBus bus,
-            string encryptionKeyIdentifier,
-            IDictionary<string, byte[]> keys,
-            IList<byte[]> decryptionKeys
-            )
+
+        public RijndaelEncryptionService(
+                IBus bus,
+                string encryptionKeyIdentifier,
+                IDictionary<string, byte[]> keys,
+                IList<byte[]> decryptionKeys
+                )
         {
             this.encryptionKeyIdentifier = encryptionKeyIdentifier;
             this.decryptionKeys = decryptionKeys;
@@ -206,7 +206,7 @@ namespace NServiceBus.Encryption.Rijndael
 
         protected virtual void AddKeyIdentifierHeader(OutgoingLogicalMessageContext context)
         {
-                context.SetHeader(Headers.RijndaelKeyIdentifier, encryptionKeyIdentifier);
+            context.SetHeader(Headers.RijndaelKeyIdentifier, encryptionKeyIdentifier);
         }
 
         protected virtual bool TryGetKeyIdentifierHeader(out string keyIdentifier, LogicalMessageProcessingContext context)

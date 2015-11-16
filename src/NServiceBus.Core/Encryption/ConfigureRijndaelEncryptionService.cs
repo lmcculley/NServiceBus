@@ -95,42 +95,6 @@ namespace NServiceBus
 
             return o;
         }
-
-        /// <summary>
-        /// Use 256 bit AES encryption based on the Rijndael cipher. 
-        /// </summary>
-        /// <param name="config">The <see cref="BusConfiguration"/> instance to apply the settings to.</param>
-        /// <param name="encryptionKey">The default encryption key to use.</param>
-        /// <param name="expiredKeys">The secondary expired keys that will be used for decryption.</param>
-        [ObsoleteEx(
-            RemoveInVersion = "6",
-            TreatAsErrorFromVersion = "6",
-            ReplacementTypeOrMember = "RijndaelEncryptionService(string encryptionKeyIdentifier, byte[] encryptionKey, IEnumerable<KeyValuePair<string, byte[]>> expiredKeys = null)")]
-        public static void RijndaelEncryptionService(this BusConfiguration config, string encryptionKey, List<string> expiredKeys = null)
-        {
-            Guard.AgainstNull("config", config);
-            Guard.AgainstNullAndEmpty("encryptionKey", encryptionKey);
-
-            if (expiredKeys == null)
-            {
-                expiredKeys = new List<string>();
-            }
-            else
-            {
-                VerifyKeys(expiredKeys);
-            }
-
-            var decryptionKeys = expiredKeys.ConvertAll(x => ParseKey(x, KeyFormat.Ascii));
-            decryptionKeys.Insert(0, ParseKey(encryptionKey, KeyFormat.Ascii));
-
-            RegisterEncryptionService(config, context => BuildRijndaelEncryptionService(
-                context.Build<IBus>(),
-                null,
-                new Dictionary<string, byte[]>(),
-                decryptionKeys
-                ));
-        }
-
         /// <summary>
         /// Use 256 bit AES encryption based on the Rijndael cipher. 
         /// </summary>
