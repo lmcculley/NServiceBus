@@ -2,6 +2,7 @@ namespace NServiceBus.Core.Tests.Encryption
 {
     using System;
     using NServiceBus.Encryption;
+    using NServiceBus.Pipeline.Contexts;
 
     public class FakeEncryptionService : IEncryptionService
     {
@@ -12,12 +13,12 @@ namespace NServiceBus.Core.Tests.Encryption
             this.hardcodedValue = hardcodedValue;
         }
 
-        public EncryptedValue Encrypt(string value)
+        public EncryptedValue Encrypt(string value, OutgoingLogicalMessageContext context)
         {
             return hardcodedValue;
         }
 
-        public string Decrypt(EncryptedValue encryptedValue)
+        public string Decrypt(EncryptedValue encryptedValue, LogicalMessageProcessingContext context)
         {
             if (encryptedValue.Base64Iv == hardcodedValue.Base64Iv && encryptedValue.EncryptedBase64Value == hardcodedValue.EncryptedBase64Value)
              return "A secret";
