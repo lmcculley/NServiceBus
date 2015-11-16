@@ -10,13 +10,13 @@ namespace NServiceBus
 
     class DecryptBehavior : Behavior<LogicalMessageProcessingContext>
     {
-        EncryptionPropertyInspector messagePropertyInspector;
+        EncryptionInspector messageInspector;
         IEncryptionService encryptionService;
         LogicalMessageProcessingContext context;
 
-        public DecryptBehavior(EncryptionPropertyInspector messagePropertyInspector, IEncryptionService encryptionService)
+        public DecryptBehavior(EncryptionInspector messageInspector, IEncryptionService encryptionService)
         {
-            this.messagePropertyInspector = messagePropertyInspector;
+            this.messageInspector = messageInspector;
             this.encryptionService = encryptionService;
         }
         public override async Task Invoke(LogicalMessageProcessingContext context, Func<Task> next)
@@ -31,7 +31,7 @@ namespace NServiceBus
 
             var current = context.Message.Instance;
 
-            messagePropertyInspector.ForEachMember(
+            messageInspector.ForEachMember(
                 current,
                 DecryptMember
                 );

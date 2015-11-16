@@ -9,13 +9,13 @@
 
     class EncryptBehavior : Behavior<OutgoingLogicalMessageContext>
     {
-        EncryptionPropertyInspector messagePropertyInspector;
+        EncryptionInspector messageInspector;
         IEncryptionService encryptionService;
-        OutgoingLogicalMessageContext context;
+        //OutgoingLogicalMessageContext context;
 
-        public EncryptBehavior(EncryptionPropertyInspector messagePropertyInspector, IEncryptionService encryptionService)
+        public EncryptBehavior(EncryptionInspector messageInspector, IEncryptionService encryptionService)
         {
-            this.messagePropertyInspector = messagePropertyInspector;
+            this.messageInspector = messageInspector;
             this.encryptionService = encryptionService;
         }
 
@@ -23,11 +23,12 @@
         {
             var currentMessageToSend = context.Message.Instance;
 
-            this.context = context;
+            //this.context = context;
 
-            messagePropertyInspector.ForEachMember(
+            messageInspector.ForEachMember(
                 currentMessageToSend,
-                EncryptMember
+                (a, b) => EncryptMember(a, b, context)
+                //EncryptMember
                 );
 
             context.UpdateMessageInstance(currentMessageToSend);
@@ -35,50 +36,32 @@
             return next();
         }
 
-        string EncryptUserSpecifiedProperty(object valueToEncrypt)
+        void EncryptMember(object message, MemberInfo member, OutgoingLogicalMessageContext context)
         {
-            var stringToEncrypt = valueToEncrypt as string;
-
-            if (stringToEncrypt == null)
-            {
-                throw new Exception("Only string properties is supported for convention based encryption, please check your convention");
-            }
-
-            var encryptedValue = Encrypt(stringToEncrypt);
-
-            return $"{encryptedValue.EncryptedBase64Value}@{encryptedValue.Base64Iv}";
-        }
-
-        void EncryptWireEncryptedString(WireEncryptedString wireEncryptedString)
-        {
-            wireEncryptedString.EncryptedValue = Encrypt(wireEncryptedString.Value);
-            wireEncryptedString.Value = null;
-        }
-
-        void EncryptMember(object target, MemberInfo member)
-        {
-            var valueToEncrypt = member.GetValue(target);
-
-            if (valueToEncrypt == null)
-            {
-                return;
-            }
+            var valueToEncrypt = member.GetValue(message);
 
             var wireEncryptedString = valueToEncrypt as WireEncryptedString;
+
             if (wireEncryptedString != null)
             {
-                var encryptedString = wireEncryptedString;
-                EncryptWireEncryptedString(encryptedString);
+                wireEncryptedString.EncryptedValue = encryptionService.Encrypt(wireEncryptedString.Value, context);
+                wireEncryptedString.Value = null;
             }
             else
             {
-                member.SetValue(target, EncryptUserSpecifiedProperty(valueToEncrypt));
-            }
-        }
+                var stringToEncrypt = valueToEncrypt as string;
 
-        EncryptedValue Encrypt(string value)
-        {
-            return encryptionService.Encrypt(value, context);
+                if (stringToEncrypt == null)
+                {
+                    throw new Exception("Only string properties is supported for convention based encryption, please check your convention");
+                }
+
+                var encryptedValue = encryptionService.Encrypt(stringToEncrypt, context);
+
+                var result = $"{encryptedValue.EncryptedBase64Value}@{encryptedValue.Base64Iv}";
+
+                member.SetValue(message, result);
+            }
         }
 
         public class EncryptRegistration : RegisterStep

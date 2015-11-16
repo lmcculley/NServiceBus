@@ -67,7 +67,7 @@ Perhaps you forgot to define your encryption message conventions or to define me
         protected internal override void Setup(FeatureConfigurationContext context)
         {
             context.Container.ConfigureComponent(serviceConstructor, DependencyLifecycle.SingleInstance);
-            context.Container.ConfigureComponent<EncryptionPropertyInspector>(DependencyLifecycle.InstancePerCall);
+            context.Container.ConfigureComponent<EncryptionInspector>(DependencyLifecycle.InstancePerCall);
 
             context.Pipeline.Register<EncryptBehavior.EncryptRegistration>();
             context.Pipeline.Register<DecryptBehavior.DecryptRegistration>();

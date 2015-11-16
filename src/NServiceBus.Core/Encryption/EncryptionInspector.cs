@@ -9,11 +9,11 @@ namespace NServiceBus.Encryption
     using Logging;
     using Utils.Reflection;
 
-    class EncryptionPropertyInspector
+    class EncryptionInspector
     {
         Conventions conventions;
 
-        public EncryptionPropertyInspector(Conventions conventions)
+        public EncryptionInspector(Conventions conventions)
         {
             this.conventions = conventions;
         }
@@ -66,7 +66,7 @@ namespace NServiceBus.Encryption
 
             foreach (var member in members)
             {
-                if (IsEncryptedMember(member))
+                if (IsEncryptedMember(member) && member.GetValue(root) != null)
                 {
                     action(root, member);
                 }
