@@ -10,7 +10,7 @@
         {
             var svc = new FakeEncryptionService(new EncryptedValue
             {
-                EncryptedBase64Value = "EncryptedBase64Value",
+                EncryptedBase64Value = EncryptedBase64Value,
                 Base64Iv = "Base64Iv"
             });
 

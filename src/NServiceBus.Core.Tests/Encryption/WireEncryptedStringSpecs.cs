@@ -31,9 +31,9 @@
             message.ListOfSecrets = new ArrayList(message.ListOfCreditCards);
 
             var result = inspector.ScanObject(message).ToList();
-            result.ForEach(x => x.Item2.SetValue(x.Item1, EncryptedBase64Value));
+            result.ForEach(x => x.Item2.SetValue(x.Item1, Create()));
 
-            Assert.AreEqual(7, result.Count);
+            Assert.AreEqual(5, result.Count);
 
             Assert.AreEqual(EncryptedBase64Value, message.Secret.EncryptedValue.EncryptedBase64Value);
             Assert.AreEqual(EncryptedBase64Value, message.SecretField.EncryptedValue.EncryptedBase64Value);
@@ -54,7 +54,7 @@
         {
             var message = new MessageWithIndexedProperties
             {
-                Secret = MySecretMessage
+                Secret = Create()
             };
 
             message[0] = "boo";
@@ -62,8 +62,8 @@
 
             var result = inspector.ScanObject(message).ToList();
 
-            Assert.AreEqual("boo", result[0].Item1);
-            Assert.AreEqual("foo", result[1].Item2);
+            Assert.AreEqual(1, result.Count);
+            Assert.AreSame(message.Secret, result[0].Item2.GetValue(result[0].Item1));
         }
 
         public class MessageWithIndexedProperties : IMessage
@@ -143,7 +143,7 @@
 
             inspector
                 .ScanObject(message)
-                .ForEach(x => x.Item2.SetValue(x.Item1, MySecretMessage));
+                .ForEach(x => x.Item2.SetValue(x.Item1, (WireEncryptedString)MySecretMessage));
 
             Assert.AreEqual(MySecretMessage, message.MySecret.Value);
         }
@@ -171,7 +171,7 @@
 
             inspector
                 .ScanObject(message)
-                .ForEach(x => x.Item2.SetValue(x.Item1, MySecretMessage));
+                .ForEach(x => x.Item2.SetValue(x.Item1, Create()));
 
             Assert.AreEqual(message.Secret.Value, MySecretMessage);
         }
@@ -193,7 +193,7 @@
 
             inspector
                 .ScanObject(message)
-                .ForEach(x => x.Item2.SetValue(x.Item1, MySecretMessage));
+                .ForEach(x => x.Item2.SetValue(x.Item1, Create()));
 
             Assert.AreEqual(MySecretMessage, message.Secret.Value);
             Assert.AreEqual(MySecretMessage, message.SecretField.Value);
@@ -238,7 +238,8 @@
                 {
                     EncryptedBase64Value = EncryptedBase64Value,
                     Base64Iv = "init_vector"
-                }
+                },
+                Value = MySecretMessage
             };
         }
     }
