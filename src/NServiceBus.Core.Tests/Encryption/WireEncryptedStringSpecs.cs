@@ -3,32 +3,37 @@
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Linq;
+    using ApprovalUtilities.Utilities;
     using NServiceBus.Encryption;
     using NUnit.Framework;
     using Conventions = NServiceBus.Conventions;
 
     [TestFixture]
-    public class When_sending_a_message_using_the_default_convention : WireEncryptedStringContext
+    public class When_inspecting_a_message_using_the_default_convention : WireEncryptedStringContext
     {
         [Test]
         public void Should_use_the_wireEncrypted_string()
         {
             var message = new Customer
-                {
-                    Secret = MySecretMessage,
-                    SecretField = MySecretMessage,
-                    CreditCard = new CreditCardDetails {CreditCardNumber = MySecretMessage},
-                    LargeByteArray = new byte[1000000],
-                    ListOfCreditCards =
+            {
+                Secret = MySecretMessage,
+                SecretField = MySecretMessage,
+                CreditCard = new CreditCardDetails { CreditCardNumber = MySecretMessage },
+                LargeByteArray = new byte[1000000],
+                ListOfCreditCards =
                         new List<CreditCardDetails>
                             {
                                 new CreditCardDetails {CreditCardNumber = MySecretMessage},
                                 new CreditCardDetails {CreditCardNumber = MySecretMessage}
                             }
-                };
+            };
             message.ListOfSecrets = new ArrayList(message.ListOfCreditCards);
 
-            inspector.MutateOutgoing(message);
+            var result = inspector.ScanObject(message).ToList();
+            result.ForEach(x => x.Item2.SetValue(x.Item1, EncryptedBase64Value));
+
+            Assert.AreEqual(7, result.Count);
 
             Assert.AreEqual(EncryptedBase64Value, message.Secret.EncryptedValue.EncryptedBase64Value);
             Assert.AreEqual(EncryptedBase64Value, message.SecretField.EncryptedValue.EncryptedBase64Value);
@@ -42,24 +47,23 @@
     }
 
     [TestFixture]
-    public class When_encrypting_a_message_with_indexed_properties : WireEncryptedStringContext
+    public class When_inspecting_a_message_with_indexed_properties : WireEncryptedStringContext
     {
         [Test]
-        public void Should_encrypt_the_property_correctly()
+        public void Should_match_the_property_correctly()
         {
             var message = new MessageWithIndexedProperties
-                {
-                    Secret = MySecretMessage
-                };
+            {
+                Secret = MySecretMessage
+            };
 
             message[0] = "boo";
             message[1] = "foo";
 
-            inspector.ScanObject(message);
+            var result = inspector.ScanObject(message).ToList();
 
-            Assert.AreEqual("boo", message[0]);
-            Assert.AreEqual("foo", message[1]);
-            Assert.AreEqual(EncryptedBase64Value, message.Secret.EncryptedValue.EncryptedBase64Value);
+            Assert.AreEqual("boo", result[0].Item1);
+            Assert.AreEqual("foo", result[1].Item2);
         }
 
         public class MessageWithIndexedProperties : IMessage
@@ -77,7 +81,7 @@
     }
 
     [TestFixture]
-    public class When_encrypting_a_message_with_WireEncryptedString_as_an_indexed_properties : WireEncryptedStringContext
+    public class When_inspecting_a_message_with_WireEncryptedString_as_an_indexed_properties : WireEncryptedStringContext
     {
         [Test]
         public void Should_throw_exception()
@@ -87,7 +91,7 @@
             message[0] = MySecretMessage;
             message[1] = MySecretMessage;
 
-            var exception = Assert.Throws<Exception>(() => inspector.MutateOutgoing(message));
+            var exception = Assert.Throws<Exception>(() => inspector.ScanObject(message));
             Assert.AreEqual("Cannot encrypt or decrypt indexed properties that return a WireEncryptedString.", exception.Message);
         }
 
@@ -104,74 +108,42 @@
     }
 
     [TestFixture]
-    public class When_encrypting_a_message_with_circular_references : WireEncryptedStringContext
+    public class When_inspecting_a_message_with_circular_references : WireEncryptedStringContext
     {
         [Test]
-        public void Should_encrypt_the_property_correctly()
+        public void Should_match_the_property_correctly()
         {
-            var child = new SubProperty {Secret = MySecretMessage};
+            var child = new SubProperty { Secret = MySecretMessage };
 
             var message = new MessageWithCircularReferences
-                {
-                    Child = child
-                };
+            {
+                Child = child
+            };
             child.Self = child;
             child.Parent = message;
 
-            inspector.MutateOutgoing(message);
+            var result = inspector.ScanObject(message).ToList();
 
-            Assert.AreEqual(EncryptedBase64Value, message.Child.Secret.EncryptedValue.EncryptedBase64Value);
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual("Secret", result[0].Item2.Name);
         }
     }
 
     [TestFixture]
-    public class When_decrypting_a_message_with_indexed_properties : WireEncryptedStringContext
+    public class When_inspecting_a_message_with_property_with_backing_public_field : WireEncryptedStringContext
     {
         [Test]
-        public void Should_decrypt_the_property_correctly()
-        {
-            var message = new MessageWithIndexProperties
-                          {
-                              Secret = Create()
-                          };
-
-            message[0] = "boo";
-            message[1] = "foo";
-
-            inspector.MutateIncoming(message);
-
-            Assert.AreEqual("boo", message[0]);
-            Assert.AreEqual("foo", message[1]);
-            Assert.AreEqual(MySecretMessage, message.Secret.Value);
-        }
-
-        public class MessageWithIndexProperties : IMessage
-        {
-            string[] indexedList = new string[2];
-
-            public string this[int index]
-            {
-                get { return indexedList[index]; }
-                set { indexedList[index] = value; }
-            }
-
-            public WireEncryptedString Secret { get; set; }
-        }
-    }
-
-    [TestFixture]
-    public class When_decrypting_a_message_with_property_with_backing_public_field : WireEncryptedStringContext
-    {
-        [Test]
-        public void Should_decrypt_the_property_correctly()
+        public void Should_match_the_property_correctly()
         {
             var message = new MessageWithPropertyWithBackingPublicField
-                {
-                    MySecret = Create(),
+            {
+                MySecret = Create(),
 
-                };
+            };
 
-            inspector.MutateIncoming(message);
+            inspector
+                .ScanObject(message)
+                .ForEach(x => x.Item2.SetValue(x.Item1, MySecretMessage));
 
             Assert.AreEqual(MySecretMessage, message.MySecret.Value);
         }
@@ -189,29 +161,6 @@
     }
 
     [TestFixture]
-    public class When_decrypting_a_message_with_circular_references : WireEncryptedStringContext
-    {
-        [Test]
-        public void Should_decrypt_the_property_correctly()
-        {
-            var child = new SubProperty {Secret = Create()};
-
-            var message = new MessageWithCircularReferences
-                {
-                    Child = child
-                };
-            child.Self = child;
-            child.Parent = message;
-
-            inspector.MutateIncoming(message);
-
-            Assert.AreEqual(message.Child.Secret.Value, MySecretMessage);
-
-
-        }
-    }
-
-    [TestFixture]
     public class When_decrypting_a_member_that_is_missing_encryption_data : WireEncryptedStringContext
     {
         [Test]
@@ -219,9 +168,9 @@
         {
 
             var message = new MessageWithMissingData
-                {
-                    Secret = new WireEncryptedString {Value = "The real value"}
-                };
+            {
+                Secret = new WireEncryptedString { Value = "The real value" }
+            };
 
             var exception = Assert.Throws<Exception>(() => inspector.MutateIncoming(message));
             Assert.AreEqual("Encrypted property is missing encryption data", exception.Message);
@@ -229,14 +178,17 @@
     }
 
     [TestFixture]
-    public class When_receiving_a_message_with_a_encrypted_property_that_has_a_nonpublic_setter :
+    public class When_inspecting_a_message_with_a_encrypted_property_that_has_a_nonpublic_setter :
         WireEncryptedStringContext
     {
         [Test]
         public void Should_decrypt_correctly()
         {
             var message = new SecureMessageWithProtectedSetter(Create());
-            inspector.MutateIncoming(message);
+
+            inspector
+                .ScanObject(message)
+                .ForEach(x => x.Item2.SetValue(x.Item1, MySecretMessage));
 
             Assert.AreEqual(message.Secret.Value, MySecretMessage);
         }
@@ -249,9 +201,9 @@
         public void Should_clear_the_compatibility_properties()
         {
             var message = new Customer
-                {
-                    Secret = MySecretMessage
-                };
+            {
+                Secret = MySecretMessage
+            };
             inspector.MutateOutgoing(message);
 
             Assert.AreEqual(message.Secret.EncryptedValue.EncryptedBase64Value, EncryptedBase64Value);
@@ -265,14 +217,16 @@
         public void Should_use_the_wireEncrypted_string()
         {
             var message = new Customer
-                {
-                    Secret = Create(),
-                    SecretField = Create(),
-                    CreditCard = new CreditCardDetails {CreditCardNumber = Create()}
+            {
+                Secret = Create(),
+                SecretField = Create(),
+                CreditCard = new CreditCardDetails { CreditCardNumber = Create() }
 
-                };
+            };
 
-            inspector.MutateIncoming(message);
+            inspector
+                .ScanObject(message)
+                .ForEach(x => x.Item2.SetValue(x.Item1, MySecretMessage));
 
             Assert.AreEqual(MySecretMessage, message.Secret.Value);
             Assert.AreEqual(MySecretMessage, message.SecretField.Value);
@@ -312,13 +266,13 @@
         protected WireEncryptedString Create()
         {
             return new WireEncryptedString
+            {
+                EncryptedValue = new EncryptedValue
                 {
-                    EncryptedValue = new EncryptedValue
-                        {
-                            EncryptedBase64Value = EncryptedBase64Value,
-                            Base64Iv = "init_vector"
-                        }
-                };
+                    EncryptedBase64Value = EncryptedBase64Value,
+                    Base64Iv = "init_vector"
+                }
+            };
         }
     }
 
@@ -341,7 +295,7 @@
 
         public ArrayList ListOfSecrets { get; set; }
 
-        public byte[] LargeByteArray{ get; set; }
+        public byte[] LargeByteArray { get; set; }
     }
 
     public class CreditCardDetails
