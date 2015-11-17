@@ -161,23 +161,6 @@
     }
 
     [TestFixture]
-    public class When_decrypting_a_member_that_is_missing_encryption_data : WireEncryptedStringContext
-    {
-        [Test]
-        public void Should_throw_an_exception()
-        {
-
-            var message = new MessageWithMissingData
-            {
-                Secret = new WireEncryptedString { Value = "The real value" }
-            };
-
-            var exception = Assert.Throws<Exception>(() => inspector.MutateIncoming(message));
-            Assert.AreEqual("Encrypted property is missing encryption data", exception.Message);
-        }
-    }
-
-    [TestFixture]
     public class When_inspecting_a_message_with_a_encrypted_property_that_has_a_nonpublic_setter :
         WireEncryptedStringContext
     {
@@ -191,22 +174,6 @@
                 .ForEach(x => x.Item2.SetValue(x.Item1, MySecretMessage));
 
             Assert.AreEqual(message.Secret.Value, MySecretMessage);
-        }
-    }
-
-    [TestFixture]
-    public class When_sending_a_message_with_2x_compatibility_disabled : WireEncryptedStringContext
-    {
-        [Test]
-        public void Should_clear_the_compatibility_properties()
-        {
-            var message = new Customer
-            {
-                Secret = MySecretMessage
-            };
-            inspector.MutateOutgoing(message);
-
-            Assert.AreEqual(message.Secret.EncryptedValue.EncryptedBase64Value, EncryptedBase64Value);
         }
     }
 
