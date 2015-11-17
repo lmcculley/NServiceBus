@@ -1,6 +1,7 @@
 namespace NServiceBus.Encryption
 {
     using NServiceBus.Pipeline.Contexts;
+    using NServiceBus.Pipeline.OutgoingPipeline;
 
     /// <summary>
     /// Abstraction for encryption capabilities.

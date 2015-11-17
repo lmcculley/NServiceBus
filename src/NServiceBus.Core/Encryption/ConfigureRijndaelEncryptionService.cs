@@ -40,7 +40,6 @@ namespace NServiceBus
             var keys = ExtractKeysFromConfigSection(section);
             var decryptionKeys = ExtractDecryptionKeysFromConfigSection(section);
             return BuildRijndaelEncryptionService(
-                builder.Build<IBus>(),
                 section.KeyIdentifier,
                 keys,
                 decryptionKeys
@@ -105,7 +104,6 @@ namespace NServiceBus
             decryptionKeys = decryptionKeys ?? new List<byte[]>();
 
             RegisterEncryptionService(config, context => BuildRijndaelEncryptionService(
-                context.Build<IBus>(),
                 encryptionKeyIdentifier,
                 new Dictionary<string, byte[]> { { encryptionKeyIdentifier, encryptionKey } },
                 decryptionKeys));
@@ -122,7 +120,6 @@ namespace NServiceBus
             decryptionKeys = decryptionKeys ?? new List<byte[]>();
 
             RegisterEncryptionService(config, context => BuildRijndaelEncryptionService(
-                context.Build<IBus>(),
                 encryptionKeyIdentifier,
                 keys,
                 decryptionKeys));
@@ -145,14 +142,12 @@ namespace NServiceBus
         }
 
         static IEncryptionService BuildRijndaelEncryptionService(
-            IBus bus,
             string encryptionKeyIdentifier,
             IDictionary<string, byte[]> keys,
             IList<byte[]> expiredKeys
             )
         {
             return new RijndaelEncryptionService(
-                bus,
                 encryptionKeyIdentifier,
                 keys,
                 expiredKeys

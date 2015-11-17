@@ -3,6 +3,7 @@ namespace NServiceBus
     using System;
     using NServiceBus.Encryption;
     using NServiceBus.Pipeline.Contexts;
+    using NServiceBus.Pipeline.OutgoingPipeline;
 
     static class EncryptionServiceConversions
     {

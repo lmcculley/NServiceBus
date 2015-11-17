@@ -33,6 +33,7 @@ namespace NServiceBus.Encryption.Rijndael
     using System.Security.Cryptography;
     using NServiceBus.Logging;
     using NServiceBus.Pipeline.Contexts;
+    using NServiceBus.Pipeline.OutgoingPipeline;
     using NServiceBus.TransportDispatch;
 
     class RijndaelEncryptionService : IEncryptionService
@@ -44,7 +45,6 @@ namespace NServiceBus.Encryption.Rijndael
         IList<byte[]> decryptionKeys; // Required, as we decrypt in the configured order.
 
         public RijndaelEncryptionService(
-                IBus bus,
                 string encryptionKeyIdentifier,
                 IDictionary<string, byte[]> keys,
                 IList<byte[]> decryptionKeys

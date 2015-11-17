@@ -8,6 +8,7 @@
     using AcceptanceTesting;
     using NServiceBus.Encryption;
     using NServiceBus.Pipeline.Contexts;
+    using NServiceBus.Pipeline.OutgoingPipeline;
     using NUnit.Framework;
 
     public class When_using_encryption_with_custom_service : NServiceBusAcceptanceTest

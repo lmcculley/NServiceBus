@@ -3,6 +3,7 @@ namespace NServiceBus.Core.Tests.Encryption
     using System;
     using NServiceBus.Encryption;
     using NServiceBus.Pipeline.Contexts;
+    using NServiceBus.Pipeline.OutgoingPipeline;
 
     public class FakeEncryptionService : IEncryptionService
     {

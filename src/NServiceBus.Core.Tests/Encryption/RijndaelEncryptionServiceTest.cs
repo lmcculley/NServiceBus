@@ -6,6 +6,7 @@
     using System.Text;
     using NServiceBus.Encryption.Rijndael;
     using NServiceBus.Pipeline.Contexts;
+    using NServiceBus.Pipeline.OutgoingPipeline;
     using NUnit.Framework;
 
     [TestFixture]
@@ -186,7 +187,7 @@
                 IList<byte[]> expiredKeys,
                 IDictionary<string, byte[]> keys = null
                 )
-                : base(new Fakes.FakeBus(), encryptionKeyIdentifier, encryptionKeyIdentifier != null ? keys ?? new Dictionary<string, byte[]> { { encryptionKeyIdentifier, encryptionKey } } : null, expiredKeys)
+                : base(encryptionKeyIdentifier, encryptionKeyIdentifier != null ? keys ?? new Dictionary<string, byte[]> { { encryptionKeyIdentifier, encryptionKey } } : null, expiredKeys)
             {
             }
 
