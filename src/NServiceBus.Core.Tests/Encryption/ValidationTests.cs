@@ -5,7 +5,7 @@ namespace NServiceBus.Core.Tests.Encryption
     using NUnit.Framework;
 
     [TestFixture]
-    public class ValidationFixture
+    public class ValidationTests
     {
         [Test]
         public void Should_be_false_when_encryption_key_not_in_expired_keys()
