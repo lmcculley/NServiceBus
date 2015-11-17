@@ -29,8 +29,8 @@
         [Test]
         public void Should_throw_an_exception()
         {
-            var exception = Assert.Throws<Exception>(() => inspector.ScanObject(new MessageWithNonStringSecureProperty()));
-            Assert.AreEqual("Only string properties is supported for convention based encryption, please check your convention", exception.Message);
+            var exception = Assert.Throws<Exception>(() => inspector.ScanObject(new MessageWithNonStringSecureProperty()).ToList());
+            Assert.AreEqual("Only string properties are supported for convention based encryption, please check your convention", exception.Message);
         }
     }
 

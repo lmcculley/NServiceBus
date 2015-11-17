@@ -49,8 +49,6 @@ namespace NServiceBus
                 encryptionService.Decrypt(ref stringToDecrypt, context);
                 property.SetValue(target, stringToDecrypt);
             }
-
-            throw new Exception("Only string properties is supported for convention based encryption, please check your convention");
         }
 
         public class DecryptRegistration : RegisterStep

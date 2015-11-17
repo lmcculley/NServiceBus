@@ -88,10 +88,10 @@
         {
             var message = new MessageWithIndexedProperties();
 
-            message[0] = MySecretMessage;
-            message[1] = MySecretMessage;
+            message[0] = Create();
+            message[1] = Create();
 
-            var exception = Assert.Throws<Exception>(() => inspector.ScanObject(message));
+            var exception = Assert.Throws<Exception>(() => inspector.ScanObject(message).ToList());
             Assert.AreEqual("Cannot encrypt or decrypt indexed properties that return a WireEncryptedString.", exception.Message);
         }
 

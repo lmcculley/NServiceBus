@@ -72,7 +72,15 @@ namespace NServiceBus.Encryption
             {
                 if (IsEncryptedMember(member) && member.GetValue(root) != null)
                 {
-                    yield return Tuple.Create(root, member);
+                    var value = member.GetValue(root);
+                    if (value is string || value is WireEncryptedString)
+                    {
+                        yield return Tuple.Create(root, member);
+                    }
+                    else
+                    {
+                        throw new Exception("Only string properties are supported for convention based encryption, please check your convention");
+                    }
                 }
 
                 //don't recurse over primitives or system types
