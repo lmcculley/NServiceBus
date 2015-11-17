@@ -39,19 +39,16 @@
             var wireEncryptedString = valueToEncrypt as WireEncryptedString;
             if (wireEncryptedString != null)
             {
-                wireEncryptedString.EncryptedValue = encryptionService.Encrypt(wireEncryptedString.Value, context);
-                wireEncryptedString.Value = null;
+                encryptionService.Encrypt(wireEncryptedString, context);
                 return;
             }
 
             var stringToEncrypt = valueToEncrypt as string;
             if (stringToEncrypt != null)
             {
-                var encryptedValue = encryptionService.Encrypt(stringToEncrypt, context);
+                encryptionService.Encrypt(ref stringToEncrypt, context);
 
-                var result = $"{encryptedValue.EncryptedBase64Value}@{encryptedValue.Base64Iv}";
-
-                member.SetValue(message, result);
+                member.SetValue(message, stringToEncrypt);
                 return;
             }
 

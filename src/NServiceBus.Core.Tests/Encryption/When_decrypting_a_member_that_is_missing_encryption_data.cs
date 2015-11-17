@@ -4,18 +4,24 @@
     using NUnit.Framework;
 
     [TestFixture]
-    public class When_decrypting_a_member_that_is_missing_encryption_data : WireEncryptedStringContext
+    public class WireEncryptedStringTests
     {
         [Test]
         public void Should_throw_an_exception()
         {
-
-            var message = new MessageWithMissingData
+            var svc = new FakeEncryptionService(new EncryptedValue
             {
-                Secret = new WireEncryptedString { Value = "The real value" }
+                EncryptedBase64Value = "EncryptedBase64Value",
+                Base64Iv = "Base64Iv"
+            });
+
+            var value = new WireEncryptedString
+            {
+                Value = "The real value"
             };
 
-            var exception = Assert.Throws<Exception>(() => inspector.MutateIncoming(message));
+            // ReSharper disable once InvokeAsExtensionMethod
+            var exception = Assert.Throws<Exception>(() => EncryptionServiceConversions.Decrypt(svc, value, null));
             Assert.AreEqual("Encrypted property is missing encryption data", exception.Message);
         }
     }

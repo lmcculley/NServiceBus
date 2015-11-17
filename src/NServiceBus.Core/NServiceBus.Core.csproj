@@ -95,6 +95,7 @@
     <Compile Include="Audit\InvokeAuditPipelineBehavior.cs" />
     <Compile Include="Bus.cs" />
     <Compile Include="BusConfiguration.cs" />
+    <Compile Include="Encryption\EncryptionServiceConversions.cs" />
     <Compile Include="IMessageProcessingContext.cs" />
     <Compile Include="IMessageProcessingContextExtensions.cs" />
     <Compile Include="MessageHandlerContext.cs" />

@@ -6,7 +6,6 @@ namespace NServiceBus
     using Encryption;
     using Pipeline;
     using Pipeline.Contexts;
-    using Unicast.Transport;
 
     class DecryptBehavior : Behavior<LogicalMessageProcessingContext>
     {
@@ -41,28 +40,14 @@ namespace NServiceBus
             var wireEncryptedString = encryptedValue as WireEncryptedString;
             if (wireEncryptedString != null)
             {
-                if (wireEncryptedString.EncryptedValue == null)
-                {
-                    throw new Exception("Encrypted property is missing encryption data");
-                }
-
-                wireEncryptedString.Value = encryptionService.Decrypt(wireEncryptedString.EncryptedValue, context);
+                encryptionService.Decrypt(wireEncryptedString, context);
             }
 
             var stringToDecrypt = encryptedValue as string;
             if (stringToDecrypt != null)
             {
-                var parts = stringToDecrypt.Split(new[] { '@' }, StringSplitOptions.None);
-
-                var result = encryptionService.Decrypt(new EncryptedValue
-                {
-                    EncryptedBase64Value = parts[0],
-                    Base64Iv = parts[1]
-                },
-                context
-                );
-
-                property.SetValue(target, result);
+                encryptionService.Decrypt(ref stringToDecrypt, context);
+                property.SetValue(target, stringToDecrypt);
             }
 
             throw new Exception("Only string properties is supported for convention based encryption, please check your convention");
