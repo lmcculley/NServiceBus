@@ -21,12 +21,6 @@ namespace NServiceBus
 
         public override async Task Invoke(LogicalMessageProcessingContext context, Func<Task> next)
         {
-            if (TransportMessageExtensions.IsControlMessage(context.Headers))
-            {
-                await next().ConfigureAwait(false);
-                return;
-            }
-
             var current = context.Message.Instance;
 
             messageInspector.ForEachMember(
