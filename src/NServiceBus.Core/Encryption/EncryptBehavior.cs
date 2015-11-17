@@ -22,10 +22,10 @@
         {
             var currentMessageToSend = context.Message.Instance;
 
-            messageInspector.ForEachMember(
-                currentMessageToSend,
-                (a, b) => EncryptMember(a, b, context)
-                );
+            foreach (var item in messageInspector.ScanObject(currentMessageToSend))
+            {
+                EncryptMember(item.Item1, item.Item2, context);
+            }
 
             context.UpdateMessageInstance(currentMessageToSend);
 

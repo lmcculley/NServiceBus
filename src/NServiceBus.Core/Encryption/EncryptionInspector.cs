@@ -6,7 +6,6 @@ namespace NServiceBus.Encryption
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
-    using Logging;
     using Utils.Reflection;
 
     class EncryptionInspector
@@ -17,7 +16,6 @@ namespace NServiceBus.Encryption
         {
             this.conventions = conventions;
         }
-
 
         static bool IsIndexedProperty(MemberInfo member)
         {
@@ -53,11 +51,17 @@ namespace NServiceBus.Encryption
             return false;
         }
 
-        public void ForEachMember(object root, Action<object, MemberInfo> action)
+        public IEnumerable<Tuple<object, MemberInfo>> ScanObject(object root)
+        {
+            var visitedMembers = new HashSet<object>();
+            return ScanObject(root, visitedMembers);
+        }
+
+        IEnumerable<Tuple<object, MemberInfo>> ScanObject(object root, HashSet<object> visitedMembers)
         {
             if (root == null || visitedMembers.Contains(root))
             {
-                return;
+                yield break;
             }
 
             visitedMembers.Add(root);
@@ -68,7 +72,7 @@ namespace NServiceBus.Encryption
             {
                 if (IsEncryptedMember(member) && member.GetValue(root) != null)
                 {
-                    action(root, member);
+                    yield return Tuple.Create(root, member);
                 }
 
                 //don't recurse over primitives or system types
@@ -106,17 +110,16 @@ namespace NServiceBus.Encryption
                             break;
                         }
 
-                        ForEachMember(item, action);
+                        foreach (var i in ScanObject(item, visitedMembers)) yield return i;
                     }
                 }
                 else
                 {
-                    ForEachMember(child, action);
+                    foreach (var i in ScanObject(child, visitedMembers)) yield return i;
                 }
             }
         }
-
-
+        
         static IEnumerable<MemberInfo> GetFieldsAndProperties(object target)
         {
             if (target == null)
@@ -152,10 +155,6 @@ namespace NServiceBus.Encryption
             return members;
         }
 
-        HashSet<object> visitedMembers = new HashSet<object>();
-
         static ConcurrentDictionary<RuntimeTypeHandle, IEnumerable<MemberInfo>> cache = new ConcurrentDictionary<RuntimeTypeHandle, IEnumerable<MemberInfo>>();
-
-        static ILog Log = LogManager.GetLogger<IEncryptionService>();
     }
 }

@@ -23,10 +23,10 @@ namespace NServiceBus
         {
             var current = context.Message.Instance;
 
-            messageInspector.ForEachMember(
-                current,
-                (a, b) => DecryptMember(a, b, context)
-                );
+            foreach (var item in messageInspector.ScanObject(current))
+            {
+                DecryptMember(item.Item1, item.Item2, context);
+            }
 
             context.Message.UpdateMessageInstance(current);
 
