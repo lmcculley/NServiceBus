@@ -28,7 +28,7 @@
                 };
             message.ListOfSecrets = new ArrayList(message.ListOfCreditCards);
 
-            mutator.MutateOutgoing(message);
+            inspector.MutateOutgoing(message);
 
             Assert.AreEqual(EncryptedBase64Value, message.Secret.EncryptedValue.EncryptedBase64Value);
             Assert.AreEqual(EncryptedBase64Value, message.SecretField.EncryptedValue.EncryptedBase64Value);
@@ -55,7 +55,7 @@
             message[0] = "boo";
             message[1] = "foo";
 
-            mutator.MutateOutgoing(message);
+            inspector.ScanObject(message);
 
             Assert.AreEqual("boo", message[0]);
             Assert.AreEqual("foo", message[1]);
@@ -87,7 +87,7 @@
             message[0] = MySecretMessage;
             message[1] = MySecretMessage;
 
-            var exception = Assert.Throws<Exception>(() => mutator.MutateOutgoing(message));
+            var exception = Assert.Throws<Exception>(() => inspector.MutateOutgoing(message));
             Assert.AreEqual("Cannot encrypt or decrypt indexed properties that return a WireEncryptedString.", exception.Message);
         }
 
@@ -118,7 +118,7 @@
             child.Self = child;
             child.Parent = message;
 
-            mutator.MutateOutgoing(message);
+            inspector.MutateOutgoing(message);
 
             Assert.AreEqual(EncryptedBase64Value, message.Child.Secret.EncryptedValue.EncryptedBase64Value);
         }
@@ -138,7 +138,7 @@
             message[0] = "boo";
             message[1] = "foo";
 
-            mutator.MutateIncoming(message);
+            inspector.MutateIncoming(message);
 
             Assert.AreEqual("boo", message[0]);
             Assert.AreEqual("foo", message[1]);
@@ -171,7 +171,7 @@
 
                 };
 
-            mutator.MutateIncoming(message);
+            inspector.MutateIncoming(message);
 
             Assert.AreEqual(MySecretMessage, message.MySecret.Value);
         }
@@ -203,7 +203,7 @@
             child.Self = child;
             child.Parent = message;
 
-            mutator.MutateIncoming(message);
+            inspector.MutateIncoming(message);
 
             Assert.AreEqual(message.Child.Secret.Value, MySecretMessage);
 
@@ -223,7 +223,7 @@
                     Secret = new WireEncryptedString {Value = "The real value"}
                 };
 
-            var exception = Assert.Throws<Exception>(() => mutator.MutateIncoming(message));
+            var exception = Assert.Throws<Exception>(() => inspector.MutateIncoming(message));
             Assert.AreEqual("Encrypted property is missing encryption data", exception.Message);
         }
     }
@@ -236,7 +236,7 @@
         public void Should_decrypt_correctly()
         {
             var message = new SecureMessageWithProtectedSetter(Create());
-            mutator.MutateIncoming(message);
+            inspector.MutateIncoming(message);
 
             Assert.AreEqual(message.Secret.Value, MySecretMessage);
         }
@@ -252,7 +252,7 @@
                 {
                     Secret = MySecretMessage
                 };
-            mutator.MutateOutgoing(message);
+            inspector.MutateOutgoing(message);
 
             Assert.AreEqual(message.Secret.EncryptedValue.EncryptedBase64Value, EncryptedBase64Value);
         }
@@ -272,7 +272,7 @@
 
                 };
 
-            mutator.MutateIncoming(message);
+            inspector.MutateIncoming(message);
 
             Assert.AreEqual(MySecretMessage, message.Secret.Value);
             Assert.AreEqual(MySecretMessage, message.SecretField.Value);
@@ -282,7 +282,7 @@
 
     public class WireEncryptedStringContext
     {
-        internal EncryptionInspector mutator;
+        internal EncryptionInspector inspector;
 
         protected string EncryptedBase64Value = "encrypted value";
         protected string MySecretMessage = "A secret";
@@ -298,7 +298,7 @@
                 EncryptedBase64Value = EncryptedBase64Value,
                 Base64Iv = "init_vector"
             };
-            mutator = new EncryptionInspector(conventions);
+            inspector = new EncryptionInspector(conventions);
         }
 
         protected virtual Conventions BuildConventions()

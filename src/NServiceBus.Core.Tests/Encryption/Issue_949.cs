@@ -14,7 +14,7 @@
                 Data = new int?[] {null, 1}
             };
 
-            mutator.MutateOutgoing(message);
+            inspector.MutateOutgoing(message);
 
             Assert.AreEqual(new int?[] { null, 1}, message.Data);
         }
@@ -27,7 +27,7 @@
                 Data = new object[] {null, this, null}
             };
 
-            mutator.MutateOutgoing(message);
+            inspector.MutateOutgoing(message);
 
             Assert.AreEqual(new object[] { null, this,null }, message.Data);
             

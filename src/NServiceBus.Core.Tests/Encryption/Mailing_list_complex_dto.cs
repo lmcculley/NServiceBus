@@ -16,7 +16,7 @@
 
             message.Options[TestEnum.EnumValue1]["test"] = "aString";
 
-            var result = (TestDto)mutator.MutateOutgoing(message);
+            var result = (TestDto)inspector.MutateOutgoing(message);
 
             Assert.True(result.Options.ContainsKey(TestEnum.EnumValue1));
         }

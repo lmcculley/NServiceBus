@@ -13,7 +13,7 @@
                 Name = "John"
             };
 
-            var result = (TestMessageWithSets)mutator.MutateOutgoing(message);
+            var result = (TestMessageWithSets)inspector.MutateOutgoing(message);
 
             Assert.AreEqual("John", result.Name);
         }
@@ -26,7 +26,7 @@
                 Name = "John"
             };
 
-            var result = (TestMessageWithGets)mutator.MutateOutgoing(message);
+            var result = (TestMessageWithGets)inspector.MutateOutgoing(message);
 
             Assert.AreEqual("John", result.Name);
         }

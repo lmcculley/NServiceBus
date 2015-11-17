@@ -14,7 +14,7 @@
                           {
                                   EncryptedSecret = "A secret"
                               };
-            mutator.MutateOutgoing(message);
+            inspector.MutateOutgoing(message);
 
             Assert.AreEqual($"{"encrypted value"}@{"init_vector"}", message.EncryptedSecret);
         }
@@ -30,7 +30,7 @@
                           {
                               EncryptedSecret = "encrypted value@init_vector"
                           };
-            mutator.MutateIncoming(message);
+            inspector.MutateIncoming(message);
 
             Assert.AreEqual("A secret", message.EncryptedSecret);
         }
@@ -42,7 +42,7 @@
         [Test]
         public void Should_throw_an_exception()
         {
-            var exception = Assert.Throws<Exception>(() => mutator.MutateOutgoing(new MessageWithNonStringSecureProperty()));
+            var exception = Assert.Throws<Exception>(() => inspector.MutateOutgoing(new MessageWithNonStringSecureProperty()));
             Assert.AreEqual("Only string properties is supported for convention based encryption, please check your convention", exception.Message);
         }
     }
@@ -53,7 +53,7 @@
         [Test]
         public void Should_throw_an_exception()
         {
-            var exception = Assert.Throws<Exception>(() => mutator.MutateIncoming(new MessageWithNonStringSecureProperty()));
+            var exception = Assert.Throws<Exception>(() => inspector.MutateIncoming(new MessageWithNonStringSecureProperty()));
             Assert.AreEqual("Only string properties is supported for convention based encryption, please check your convention", exception.Message);
         }
     }
