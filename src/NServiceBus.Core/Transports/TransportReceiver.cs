@@ -3,9 +3,6 @@ namespace NServiceBus.Transport
     using System;
     using System.Threading.Tasks;
     using Logging;
-    using MessageInterfaces;
-    using Settings;
-    using Unicast;
     using Unicast.Transport;
     using ObjectBuilder;
     using Pipeline;
@@ -14,7 +11,13 @@ namespace NServiceBus.Transport
 
     class TransportReceiver
     {
-        public TransportReceiver(string id, IBuilder builder, IPushMessages receiver, PushSettings pushSettings, PipelineBase<TransportReceiveContext> pipeline, PushRuntimeSettings pushRuntimeSettings)
+        public TransportReceiver(
+            string id, 
+            IBuilder builder, 
+            IPushMessages receiver, 
+            PushSettings pushSettings, 
+            PipelineBase<TransportReceiveContext> pipeline, 
+            PushRuntimeSettings pushRuntimeSettings)
         {
             Id = id;
             this.pipeline = pipeline;
@@ -51,7 +54,7 @@ namespace NServiceBus.Transport
                 return;
             }
 
-            await receiver.Stop().ConfigureAwait(false);
+            await receiver.StopAsync().ConfigureAwait(false);
             await pipeline.Cooldown().ConfigureAwait(false);
 
             isStarted = false;
@@ -61,16 +64,9 @@ namespace NServiceBus.Transport
         {
             using (var childBuilder = builder.CreateChildBuilder())
             {
-                var configurer = (IConfigureComponents)childBuilder;
-
                 var context = new TransportReceiveContext(new IncomingMessage(pushContext.MessageId, pushContext.Headers, pushContext.BodyStream), new RootContext(childBuilder));
-
                 context.Merge(pushContext.Context);
-
-                var contextStacker = new BehaviorContextStacker(context);
-                var contextualBus = new ContextualBus(contextStacker, childBuilder.Build<IMessageMapper>(), childBuilder, childBuilder.Build<ReadOnlySettings>());
-                configurer.ConfigureComponent(c => contextualBus, DependencyLifecycle.SingleInstance);
-                await pipeline.Invoke(contextStacker).ConfigureAwait(false);
+                await pipeline.Invoke(context).ConfigureAwait(false);
             }
         }
 

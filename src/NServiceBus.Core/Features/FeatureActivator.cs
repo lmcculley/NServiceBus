@@ -3,6 +3,7 @@ namespace NServiceBus.Features
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading.Tasks;
     using NServiceBus.ObjectBuilder;
     using NServiceBus.Settings;
 
@@ -112,10 +113,7 @@ namespace NServiceBus.Features
                 }
                 sourceFeatures.Remove(featureToActivate);
                 enabledFeatures.Add(featureToActivate);
-                foreach (var registeredDefault in featureToActivate.Feature.RegisteredDefaults)
-                {
-                    registeredDefault(settings);
-                }
+                featureToActivate.Feature.ConfigureDefaults(settings);
             }
 
             foreach (var feature in enabledFeatures)
@@ -138,7 +136,7 @@ namespace NServiceBus.Features
             }
         }
 
-        public void StartFeatures(IBuilder builder)
+        public async Task StartFeatures(IBuilder builder, IBusContext context)
         {
             foreach (var feature in features.Where(f => f.Feature.IsActive))
             {
@@ -146,12 +144,12 @@ namespace NServiceBus.Features
                 {
                     var task = (FeatureStartupTask) builder.Build(taskType);
 
-                    task.PerformStartup();
+                    await task.PerformStartup(context).ConfigureAwait(false);
                 }
             }
         }
 
-        public void StopFeatures(IBuilder builder)
+        public async Task StopFeatures(IBuilder builder, IBusContext context)
         {
             foreach (var feature in features.Where(f => f.Feature.IsActive))
             {
@@ -159,7 +157,7 @@ namespace NServiceBus.Features
                 {
                     var task = (FeatureStartupTask) builder.Build(taskType);
 
-                    task.PerformStop();
+                    await task.PerformStop(context).ConfigureAwait(false);
 
                     DisposeIfNecessary(task);
                 }

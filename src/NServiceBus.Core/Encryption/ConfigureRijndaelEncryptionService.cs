@@ -27,8 +27,7 @@ namespace NServiceBus
             Guard.AgainstNull("config", config);
             RegisterEncryptionService(config, context =>
             {
-                var section = context.Build<Configure>()
-                    .Settings
+                var section = context.Build<ReadOnlySettings>()
                     .GetConfigSection<RijndaelEncryptionServiceConfig>();
 
                 return ConvertConfigToRijndaelService(context, section);

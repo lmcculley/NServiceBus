@@ -3,7 +3,7 @@
     /// <summary>
     /// Static class containing headers used by NServiceBus.
     /// </summary>
-    public static class Headers
+    public static partial class Headers
     {
         /// <summary>
         /// Header for retrieving from which Http endpoint the message arrived.
@@ -59,11 +59,6 @@
         /// Prefix included on the wire when sending applicative headers.
         /// </summary>
         public const string HeaderName = "Header";
-
-        /// <summary>
-        /// Header containing the windows identity name.
-        /// </summary>
-        public const string WindowsIdentityName = "WinIdName";
 
         /// <summary>
         /// Header telling the NServiceBus Version (beginning NServiceBus V3.0.1).
@@ -139,6 +134,16 @@
         /// Header entry key for the given message type that is being subscribed to, when message intent is subscribe or unsubscribe.
         /// </summary>
         public const string SubscriptionMessageType = "SubscriptionMessageType";
+
+        /// <summary>
+        /// Header entry key for the transport address of the subscribing endpoint.
+        /// </summary>
+        public const string SubscriberTransportAddress = "NServiceBus.SubscriberAddress";
+        
+        /// <summary>
+        /// Header entry key for the logical name of the subscribing endpoint.
+        /// </summary>
+        public const string SubscriberEndpoint = "NServiceBus.SubscriberEndpoint";
 
         /// <summary>
         /// True if this message is a saga timeout.

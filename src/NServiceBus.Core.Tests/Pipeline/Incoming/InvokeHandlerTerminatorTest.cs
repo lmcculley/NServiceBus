@@ -4,12 +4,9 @@
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using System.Transactions;
-    using NServiceBus.ObjectBuilder;
     using NServiceBus.Pipeline.Contexts;
     using NServiceBus.Sagas;
-    using NServiceBus.Unicast;
     using NServiceBus.Unicast.Behaviors;
-    using NServiceBus.Unicast.Messages;
     using NUnit.Framework;
     using Conventions = NServiceBus.Conventions;
 
@@ -144,15 +141,12 @@
 
         static InvokeHandlerContext CreateBehaviorContext(MessageHandler messageHandler)
         {
-            var behaviorContext = new InvokeHandlerContext(messageHandler, new LogicalMessageProcessingContext(new LogicalMessage(null, new object(), null), new Dictionary<string, string>
-            {
-                {Headers.MessageId, string.Empty}
-            }, new TransportReceiveContext(null, new RootContext(null))));
-
-            // register a builder returning a contextual bus to avoid NullReferenceExceptions
-            var funcBuilder = new FuncBuilder();
-            behaviorContext.Set(typeof(IBuilder).FullName, funcBuilder);
-            funcBuilder.Register(typeof(ContextualBus), () => null);
+            var behaviorContext = new InvokeHandlerContext(
+                messageHandler,
+                new Dictionary<string, string>(),
+                null,
+                null,
+                new RootContext(null));
 
             return behaviorContext;
         }

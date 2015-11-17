@@ -5,17 +5,16 @@ namespace NServiceBus
     using System.Threading.Tasks;
     using NServiceBus.OutgoingPipeline;
     using NServiceBus.Pipeline;
-    using NServiceBus.Pipeline.Contexts;
+    using NServiceBus.Pipeline.OutgoingPipeline;
     using NServiceBus.Routing;
     using NServiceBus.TransportDispatch;
     using NServiceBus.Unicast.Queuing;
 
     class UnicastPublishRouterConnector : StageConnector<OutgoingPublishContext, OutgoingLogicalMessageContext>
     {
-        UnicastRouter unicastRouter;
+        IUnicastRouter unicastRouter;
         DistributionPolicy distributionPolicy;
-
-        public UnicastPublishRouterConnector(UnicastRouter unicastRouter, DistributionPolicy distributionPolicy)
+        public UnicastPublishRouterConnector(IUnicastRouter unicastRouter, DistributionPolicy distributionPolicy)
         {
             this.unicastRouter = unicastRouter;
             this.distributionPolicy = distributionPolicy;
@@ -26,9 +25,12 @@ namespace NServiceBus
             var eventType = context.Message.MessageType;
             var distributionStrategy = distributionPolicy.GetDistributionStrategy(eventType);
 
-            var addressLabels = unicastRouter.Route(eventType, distributionStrategy, context)
-                .EnsureNonEmpty(() => "No destination specified for message: " + eventType)
-                .ToArray();
+            var addressLabels = unicastRouter.Route(eventType, distributionStrategy, context).ToArray();
+            if (addressLabels.Length == 0)
+            {
+                //No subscribers for this message.
+                return;
+            }
 
             context.SetHeader(Headers.MessageIntent, MessageIntentEnum.Send.ToString());
             try

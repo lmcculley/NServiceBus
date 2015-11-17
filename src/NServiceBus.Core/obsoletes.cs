@@ -190,25 +190,12 @@ namespace NServiceBus
         }
     }
 
-    public partial class Configure
+    [ObsoleteEx(
+        Message = "This is no longer a public API",
+        RemoveInVersion = "7.0",
+        TreatAsErrorFromVersion = "6.0")]
+    public class Configure
     {
-        [ObsoleteEx(
-            Message = "Static headers is no longer accessible via this object",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public IDictionary<string, string> OutgoingHeaders
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        [ObsoleteEx(
-            TreatAsErrorFromVersion = "6",
-            RemoveInVersion = "7",
-            ReplacementTypeOrMember = "ReadOnlySettings.LocalAddress()")]
-        public string LocalAddress
-        {
-            get { throw new NotImplementedException(); }
-        }
     }
 
     [ObsoleteEx(
@@ -245,6 +232,15 @@ namespace NServiceBus
         }
 
         [ObsoleteEx(
+            Message = "Not used anymore, you most likely should use a `IncomingMessage` instead",
+            RemoveInVersion = "7.0",
+            TreatAsErrorFromVersion = "6.0")]
+        public TransportMessage(string existingId, Dictionary<string, string> existingHeaders)
+        {
+            throw new NotImplementedException();
+        }
+
+        [ObsoleteEx(
             Message = "For sending purposes use DeliveryMessageOptions.NonDurable (note the negation). When receiving look at the new 'NServiceBus.NonDurableMessage' header",
             RemoveInVersion = "7.0",
             TreatAsErrorFromVersion = "6.0")]
@@ -276,86 +272,62 @@ namespace NServiceBus
         }
 
         /// <summary>
-        ///     Gets/sets a byte array to the body content of the message.
+        /// Gets/sets a byte array to the body content of the message.
         /// </summary>
         [ObsoleteEx(
             Message = "Use the value of the 'IncomingMessage.Body' or 'OutgoingMessage.Body' instead",
             RemoveInVersion = "7.0",
             TreatAsErrorFromVersion = "6.0")]
-        public byte[] Body { get { throw new NotImplementedException(); } set { throw new NotImplementedException(); } }
-
-        [ObsoleteEx(
-          Message = "Not used anymore, you most likely should use a `IncomingMessage` instead",
-          RemoveInVersion = "7.0",
-          TreatAsErrorFromVersion = "6.0")]
-        public TransportMessage(string existingId, Dictionary<string, string> existingHeaders)
+        public byte[] Body
         {
-            throw new NotImplementedException();
+            get { throw new NotImplementedException(); }
+            set { throw new NotImplementedException(); }
         }
 
         /// <summary>
-        ///     Gets/sets the identifier of this message bundle.
+        /// Gets/sets the identifier of this message bundle.
         /// </summary>
         [ObsoleteEx(
             Message = "Use the value of the 'IncomingMessage.MessageId' or 'OutgoingMesssage.MessageId' instead",
             RemoveInVersion = "7.0",
             TreatAsErrorFromVersion = "6.0")]
-        public string Id { get { throw new NotImplementedException(); } }
+        public string Id
+        {
+            get { throw new NotImplementedException(); }
+        }
 
         /// <summary>
-        ///     Gets/sets the reply-to address of the message bundle - replaces 'ReturnAddress'.
+        /// Gets/sets the reply-to address of the message bundle - replaces 'ReturnAddress'.
         /// </summary>
         [ObsoleteEx(
             ReplacementTypeOrMember = "GetReplyToAddress(this IncomingMessage message)",
             RemoveInVersion = "7.0",
             TreatAsErrorFromVersion = "6.0")]
-        public string ReplyToAddress { get { throw new NotImplementedException(); } }
+        public string ReplyToAddress
+        {
+            get { throw new NotImplementedException(); }
+        }
 
         /// <summary>
-        ///     Indicates to the infrastructure the message intent (publish, or regular send).
+        /// Indicates to the infrastructure the message intent (publish, or regular send).
         /// </summary>
         [ObsoleteEx(
             ReplacementTypeOrMember = "GetMessageIntent(this IncomingMessage message)",
             RemoveInVersion = "7.0",
             TreatAsErrorFromVersion = "6.0")]
-        public MessageIntentEnum MessageIntent { get { throw new NotImplementedException(); } }
+        public MessageIntentEnum MessageIntent
+        {
+            get { throw new NotImplementedException(); }
+        }
 
         /// <summary>
-        ///     Gets/sets other applicative out-of-band information.
+        /// Gets/sets other applicative out-of-band information.
         /// </summary>
         [ObsoleteEx(
             Message = "Use the value of the 'IncomingMessage.Headers' or 'OutgoingMesssage.Headers' instead",
             RemoveInVersion = "7.0",
             TreatAsErrorFromVersion = "6.0")]
         public Dictionary<string, string> Headers { get; } = new Dictionary<string, string>();
-
-    }
-
-    public partial interface IBus
-    {
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0",
-            Message = "Replaced by NServiceBus.Callbacks package")]
-        void Return<T>(T errorEnum);
-
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0",
-            ReplacementTypeOrMember = "SendLocalAsync(object message, SendLocalOptions options)")]
-        ICallback Defer(TimeSpan delay, object message);
-
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0",
-            ReplacementTypeOrMember = "SendLocalAsync(object message, SendLocalOptions options)")]
-        ICallback Defer(DateTime processAt, object message);
-
-        [ObsoleteEx(
-            Message = "Please use `IMessageHandlerContext` provided to message handlers instead.",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        IMessageContext CurrentMessageContext { get; }
     }
 }
 
@@ -453,16 +425,10 @@ namespace NServiceBus.Unicast
 namespace NServiceBus.Timeout.Core
 {
     using System;
-    using Unicast;
+    using NServiceBus.Unicast;
 
     public partial class TimeoutData
     {
-        [ObsoleteEx(
-            Message = "Not used anymore",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public const string OriginalReplyToAddress = "NServiceBus.Timeout.ReplyToAddress";
-
         [ObsoleteEx(
             Message = "Use new OutgoingMessage(timeoutData.State) instead",
             RemoveInVersion = "7.0",
@@ -489,6 +455,12 @@ namespace NServiceBus.Timeout.Core
         {
             throw new NotImplementedException();
         }
+
+        [ObsoleteEx(
+            Message = "Not used anymore",
+            RemoveInVersion = "7.0",
+            TreatAsErrorFromVersion = "6.0")]
+        public const string OriginalReplyToAddress = "NServiceBus.Timeout.ReplyToAddress";
     }
 }
 
@@ -526,326 +498,13 @@ namespace NServiceBus.Unicast
 {
     using System;
     using System.Collections.Generic;
-    using System.Threading.Tasks;
-    using Hosting;
-    using ObjectBuilder;
-    using Settings;
-
-    internal partial class ContextualBus
-    {
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0",
-            Message = "No longer used")]
-        public bool PropagateReturnAddressOnSend
-        {
-            get { throw new NotImplementedException(); }
-            set { throw new NotImplementedException(); }
-        }
-
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0",
-            ReplacementTypeOrMember = "SendLocalAsync(object message, SendLocalOptions options)")]
-        public ICallback Defer(TimeSpan delay, object message)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0",
-            ReplacementTypeOrMember = "SendLocalAsync(object message, SendLocalOptions options)")]
-        public ICallback Defer(DateTime processAt, object message)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0",
-            Message = "Replaced by NServiceBus.Callbacks package")]
-        public void Return<T>(T errorCode)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public ICallback SendAsync(Address address, object message)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public ICallback Send<T>(string destination, Action<T> messageConstructor)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public ICallback SendAsync<T>(Address address, Action<T> messageConstructor)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public ICallback SendAsync(string destination, string correlationId, object message)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public ICallback SendAsync(Address address, string correlationId, object message)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public ICallback SendAsync<T>(string destination, string correlationId, Action<T> messageConstructor)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public ICallback SendAsync<T>(Address address, string correlationId, Action<T> messageConstructor)
-        {
-            throw new NotImplementedException();
-        }
-    }
 
     [ObsoleteEx(
-        Message = "UnicastBus has been made internal. Use either IBus or ISendOnlyBus.",
+        Message = "UnicastBus has been made internal. Use IBusInterface to interact with the bus from outside of the handler.",
         TreatAsErrorFromVersion = "6",
         RemoveInVersion = "7")]
-    public class UnicastBus : IStartableBus
+    public class UnicastBus
     {
-        UnicastBus()
-        {
-        }
-
-        [ObsoleteEx(
-            Message = "We have introduced a more explicit API to set the host identifier, see busConfiguration.UniquelyIdentifyRunningInstance()",
-            TreatAsErrorFromVersion = "6",
-            RemoveInVersion = "7")]
-        public HostInformation HostInformation
-        {
-            get { throw new NotImplementedException(); }
-            set { throw new NotImplementedException(); }
-        }
-
-        [ObsoleteEx(
-            Message = "ReadOnlySettings should be accessed inside feature, the pipeline and start/stop infrastructure only.",
-            TreatAsErrorFromVersion = "6",
-            RemoveInVersion = "7")]
-        public ReadOnlySettings Settings
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        [ObsoleteEx(
-            Message = "Builder should be accessed inside feature, the pipeline and start/stop infrastructure only.",
-            TreatAsErrorFromVersion = "6",
-            RemoveInVersion = "7")]
-        public IBuilder Builder
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        [ObsoleteEx(
-            Message = "Please use `IMessageHandlerContext` provided to message handlers instead.",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public IMessageContext CurrentMessageContext
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-
-        [ObsoleteEx(
-            ReplacementTypeOrMember = "ISendOnlyBus.PublishAsync(object message, PublishOptions options)",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public Task PublishAsync(object message, NServiceBus.PublishOptions options)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            ReplacementTypeOrMember = "ISendOnlyBus.PublishAsync<T>(Action<T> messageConstructor, PublishOptions options)",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public Task PublishAsync<T>(Action<T> messageConstructor, NServiceBus.PublishOptions publishOptions)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            ReplacementTypeOrMember = "ISendOnlyBus.SendAsync(object message, SendOptions options)",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public Task SendAsync(object message, NServiceBus.SendOptions options)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            ReplacementTypeOrMember = "ISendOnlyBus.SendAsync<T>(Action<T> messageConstructor, SendOptions options)",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public Task SendAsync<T>(Action<T> messageConstructor, NServiceBus.SendOptions options)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0",
-            ReplacementTypeOrMember = "SendLocalAsync(object message, SendLocalOptions options)")]
-        public ICallback Defer(TimeSpan delay, object message)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0",
-            ReplacementTypeOrMember = "SendLocalAsync(object message, SendLocalOptions options)")]
-        public ICallback Defer(DateTime processAt, object message)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            ReplacementTypeOrMember = "IBus.ReplyAsync<T>(object message, ReplyOptions options)",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public Task ReplyAsync(object message, NServiceBus.ReplyOptions options)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            ReplacementTypeOrMember = "IBus.ReplyAsync<T>(Action<T> messageConstructor, ReplyOptions options)",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public Task ReplyAsync<T>(Action<T> messageConstructor, NServiceBus.ReplyOptions options)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task SubscribeAsync(Type eventType, SubscribeOptions options)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task UnsubscribeAsync(Type eventType, UnsubscribeOptions options)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            ReplacementTypeOrMember = "IBus.HandleCurrentMessageLaterAsync()",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public Task HandleCurrentMessageLaterAsync()
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            ReplacementTypeOrMember = "IBus.ForwardCurrentMessageToAsync(string destination)",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public Task ForwardCurrentMessageToAsync(string destination)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            ReplacementTypeOrMember = "IBus.DoNotContinueDispatchingCurrentMessageToHandlers()",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public void DoNotContinueDispatchingCurrentMessageToHandlers()
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            ReplacementTypeOrMember = "IStartableBus.StartAsync()",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public Task<IBus> StartAsync()
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0",
-            Message = "Replaced by NServiceBus.Callbacks package")]
-        public void Return<T>(T errorEnum)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            ReplacementTypeOrMember = "IBus.Dispose()",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public void Dispose()
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            ReplacementTypeOrMember = "IBus.Subscribe(Type messageType)",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public void Subscribe(Type messageType)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            ReplacementTypeOrMember = "IBus.Subscribe<T>()",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public void Subscribe<T>()
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            ReplacementTypeOrMember = "IBus.Unsubscribe(Type messageType)",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public void Unsubscribe(Type messageType)
-        {
-            throw new NotImplementedException();
-        }
-
-        [ObsoleteEx(
-            ReplacementTypeOrMember = "IBus.Unsubscribe<T>()",
-            RemoveInVersion = "7.0",
-            TreatAsErrorFromVersion = "6.0")]
-        public void Unsubscribe<T>()
-        {
-            throw new NotImplementedException();
-        }
     }
 
     public partial class MessageHandlerRegistry
@@ -982,7 +641,7 @@ namespace NServiceBus
             RemoveInVersion = "7.0",
             TreatAsErrorFromVersion = "6.0",
             Message = "Headers can be set using the ``.SetHeader` method on the context object passed into your behavior or mutator")]
-        public static void SetMessageHeader(this ISendOnlyBus bus, object msg, string key, string value)
+        public static void SetMessageHeader(this IBusInterface bus, object msg, string key, string value)
         {
             throw new NotImplementedException();
         }
@@ -1082,7 +741,7 @@ namespace NServiceBus.Features
 
 namespace NServiceBus.Transports
 {
-    using Unicast;
+    using NServiceBus.Unicast;
 
     [ObsoleteEx(
         RemoveInVersion = "7.0",
@@ -1103,7 +762,7 @@ namespace NServiceBus.Transports
 
 namespace NServiceBus.Transports
 {
-    using Unicast;
+    using NServiceBus.Unicast;
 
     [ObsoleteEx(
         RemoveInVersion = "7.0",
@@ -1117,7 +776,7 @@ namespace NServiceBus.Transports
 
 namespace NServiceBus.Transports
 {
-    using Unicast;
+    using NServiceBus.Unicast;
 
     [ObsoleteEx(
         RemoveInVersion = "7.0",
@@ -1336,7 +995,7 @@ namespace NServiceBus.Unicast.Queuing
 namespace NServiceBus.Transports
 {
     using System;
-    using Unicast.Transport;
+    using NServiceBus.Unicast.Transport;
 
     [ObsoleteEx(
         ReplacementTypeOrMember = "NServiceBus.Transport.IPushMessages",
@@ -1353,7 +1012,7 @@ namespace NServiceBus.Transports
 namespace NServiceBus.Transports.Msmq
 {
     using System;
-    using Unicast.Transport;
+    using NServiceBus.Unicast.Transport;
 
     [ObsoleteEx(
         Message = "No longer available, resolve an instance of IPushMessages from the container instead",
@@ -1460,7 +1119,7 @@ namespace NServiceBus.Routing.StorageDrivenPublishing
 namespace NServiceBus
 {
     using System;
-    using Unicast;
+    using NServiceBus.Unicast;
 
     [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", Message = "No longer used, please use the new callbacks api described in the v6 upgrade guide")]
     public class BusAsyncResultEventArgs : EventArgs
@@ -1511,7 +1170,6 @@ namespace NServiceBus.Unicast
     }
 }
 
-
 namespace NServiceBus
 {
     using System;
@@ -1523,17 +1181,18 @@ namespace NServiceBus
         Func<object, string, string> GetHeaderAction { get; }
     }
 }
+
 namespace NServiceBus.Pipeline.Contexts
 {
     using System;
-    using Unicast;
-    using Unicast.Messages;
+    using NServiceBus.Unicast;
+    using NServiceBus.Unicast.Messages;
 
     [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", ReplacementTypeOrMember = "OutgoingLogicalMessage")]
     public class OutgoingContext : BehaviorContext
     {
         public OutgoingContext(BehaviorContext parentContext, DeliveryOptions deliveryOptions, LogicalMessage message)
-             : base(parentContext)
+            : base(parentContext)
         {
             throw new NotImplementedException();
         }
@@ -1556,10 +1215,7 @@ namespace NServiceBus.Pipeline.Contexts
         /// </summary>
         public TransportMessage IncomingMessage
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            get { throw new NotImplementedException(); }
         }
 
         /// <summary>
@@ -1569,7 +1225,6 @@ namespace NServiceBus.Pipeline.Contexts
         {
             get { throw new NotImplementedException(); }
         }
-
     }
 }
 
@@ -1584,7 +1239,7 @@ namespace NServiceBus.Pipeline
         /// Called when the behavior is executed.
         /// </summary>
         /// <param name="context">The current context.</param>
-        /// <param name="next">The next <see cref="IBehavior{TContext}"/> in the chain to execute.</param>
+        /// <param name="next">The next <see cref="IBehavior{TContext}" /> in the chain to execute.</param>
         void Invoke(TContext context, Action next);
     }
 }
@@ -1593,8 +1248,8 @@ namespace NServiceBus.Pipeline
 {
     using System;
     using System.Collections.Generic;
-    using ObjectBuilder;
-    using Settings;
+    using NServiceBus.ObjectBuilder;
+    using NServiceBus.Settings;
 
     [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", Message = "You can no longer get access to the pipeline context via DI. Please use a behavior to get access instead")]
     public class PipelineExecutor : IDisposable
@@ -1603,21 +1258,21 @@ namespace NServiceBus.Pipeline
         {
             throw new NotImplementedException();
         }
+
         public IList<RegisterStep> Incoming { get; private set; }
 
         public IList<RegisterStep> Outgoing { get; private set; }
+
         public BehaviorContext CurrentContext
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            get { throw new NotImplementedException(); }
         }
 
         public void Dispose()
         {
             //Injected
         }
+
         public void InvokePipeline<TContext>(IEnumerable<Type> behaviors, TContext context) where TContext : BehaviorContext
         {
             throw new NotImplementedException();
@@ -1628,9 +1283,9 @@ namespace NServiceBus.Pipeline
 namespace NServiceBus.Satellites
 {
     [ObsoleteEx(
-       Message = "ISatellite is no longer an extension point. In order to create a satellite one must create a feature that uses AddSatellitePipeline() method and a class that inherits from SatelliteBehavior that is used for processing the messages.",
-       RemoveInVersion = "7",
-       TreatAsErrorFromVersion = "6")]
+        Message = "ISatellite is no longer an extension point. In order to create a satellite one must create a feature that uses AddSatellitePipeline() method and a class that inherits from SatelliteBehavior that is used for processing the messages.",
+        RemoveInVersion = "7",
+        TreatAsErrorFromVersion = "6")]
     public interface IAdvancedSatellite
     {
     }
@@ -1657,6 +1312,7 @@ namespace NServiceBus.Unicast.Transport
         }
     }
 }
+
 namespace NServiceBus.Unicast.Transport
 {
     using System;
@@ -1664,14 +1320,13 @@ namespace NServiceBus.Unicast.Transport
     [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", ReplacementTypeOrMember = "IPushMessages")]
     public interface ITransport
     {
+        int MaximumConcurrencyLevel { get; }
+
+        int MaximumMessageThroughputPerSecond { get; }
 
         void Start(Address localAddress);
 
-        int MaximumConcurrencyLevel { get; }
-
         void ChangeMaximumConcurrencyLevel(int maximumConcurrencyLevel);
-
-        int MaximumMessageThroughputPerSecond { get; }
 
         void ChangeMaximumMessageThroughputPerSecond(int maximumMessageThroughputPerSecond);
 
@@ -1688,10 +1343,10 @@ namespace NServiceBus.Unicast.Transport
         void Stop();
     }
 }
+
 namespace NServiceBus.Unicast.Transport
 {
     using System;
-
 
     [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", Message = "No longer used, can safely be removed")]
     public class TransportMessageReceivedEventArgs : EventArgs
@@ -1719,6 +1374,7 @@ namespace NServiceBus.Unicast.Transport
         {
             throw new NotImplementedException();
         }
+
         public TransportMessage Message
         {
             get { throw new NotImplementedException(); }
@@ -1732,12 +1388,14 @@ namespace NServiceBus.Unicast.Transport
         {
             throw new NotImplementedException();
         }
+
         public TransportMessage Message
         {
             get { throw new NotImplementedException(); }
         }
     }
 }
+
 namespace NServiceBus.Unicast.Transport
 {
     using System;
@@ -1751,7 +1409,7 @@ namespace NServiceBus.Unicast.Transport
         }
 
         /// <summary>
-        ///     The received <see cref="TransportMessage" />.
+        /// The received <see cref="TransportMessage" />.
         /// </summary>
         public TransportMessage Message
         {
@@ -1769,37 +1427,27 @@ namespace NServiceBus.Transports
         [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", Message = "GetTransactionSupport")]
         public bool? HasSupportForDistributedTransactions
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
-            protected set
-            {
-                throw new NotImplementedException();
-            }
+            get { throw new NotImplementedException(); }
+            protected set { throw new NotImplementedException(); }
         }
 
         [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", ReplacementTypeOrMember = "GetTransactionSupport")]
         public bool HasSupportForMultiQueueNativeTransactions
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
-            protected set
-            {
-                throw new NotImplementedException();
-            }
+            get { throw new NotImplementedException(); }
+            protected set { throw new NotImplementedException(); }
         }
     }
 }
+
 #pragma warning disable 0067
+
 namespace NServiceBus.Unicast.Transport
 {
     using System;
-    using Faults;
-    using Settings;
-    using Transports;
+    using NServiceBus.Faults;
+    using NServiceBus.Settings;
+    using NServiceBus.Transports;
 
     [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", Message = "No longer used, can safely be removed")]
     public class TransportReceiver : ITransport, IDisposable
@@ -1814,6 +1462,7 @@ namespace NServiceBus.Unicast.Transport
 
 
         public IManageMessageFailures FailureManager { get; set; }
+        public TransactionSettings TransactionSettings { get; private set; }
 
 
         public void Dispose()
@@ -1832,11 +1481,11 @@ namespace NServiceBus.Unicast.Transport
         public void ChangeMaximumConcurrencyLevel(int maximumConcurrencyLevel)
         {
         }
+
         public int MaximumMessageThroughputPerSecond { get; private set; }
 
         public void ChangeMaximumMessageThroughputPerSecond(int maximumMessageThroughputPerSecond)
         {
-
         }
 
         public event EventHandler<TransportMessageReceivedEventArgs> TransportMessageReceived;
@@ -1844,7 +1493,6 @@ namespace NServiceBus.Unicast.Transport
 
         public void Start(Address address)
         {
-
         }
 
         public void AbortHandlingCurrentMessage()
@@ -1854,8 +1502,88 @@ namespace NServiceBus.Unicast.Transport
         public void Stop()
         {
         }
-        public TransactionSettings TransactionSettings { get; private set; }
     }
 }
 
 #pragma warning restore 0067
+
+namespace NServiceBus
+{
+    public static partial class Headers
+    {
+        [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", Message = "The WinIdName header is no longer attached to outgoing message to avoid passing security related information on the wire. Should you rely on the header being present you can add a message mutator that sets it.")]
+        public const string WindowsIdentityName = "WinIdName";
+    }
+}
+
+namespace NServiceBus
+{
+    using System;
+    using NServiceBus.ObjectBuilder;
+
+    [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", ReplacementTypeOrMember = "IFinalizeConfiguration")]
+    public interface IWantToRunBeforeConfigurationIsFinalized
+    {
+        /// <summary>
+        /// Invoked before configuration is finalized and locked.
+        /// </summary>
+        void Run(Configure config);
+    }
+
+    [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", Message = "When in context of handler use IMessageHandlingContext. Otherwise use IBusInterface to create sending context.")]
+    public interface IBus
+    {
+    }
+
+    [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", ReplacementTypeOrMember = "IStartableEndpoint")]
+    public interface IStartableBus : IBus
+    {
+        [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", ReplacementTypeOrMember = "IStartableEndpoint")]
+        IBus Start();
+    }
+
+    public static class Bus
+    {
+        [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", ReplacementTypeOrMember = "Endpoint.Create")]
+        public static IStartableBus Create(BusConfiguration configuration)
+        {
+            throw new NotImplementedException();
+        }
+
+        [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", ReplacementTypeOrMember = "BusConfiguration.SendOnly")]
+        public static IBus CreateSendOnly(BusConfiguration configuration)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", Message = "Use extension methods provided on ISendOnlyBus")]
+    public class Schedule
+    {
+        public Schedule(IBuilder builder)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Every(TimeSpan timeSpan, Action task)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Every(TimeSpan timeSpan, string name, Action task)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
+
+namespace NServiceBus.Installation
+{
+    using System.Threading.Tasks;
+
+    [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", ReplacementTypeOrMember = "IInstall")]
+    public interface INeedToInstallSomething
+    {
+        Task InstallAsync(string identity, Configure config);
+    }
+}

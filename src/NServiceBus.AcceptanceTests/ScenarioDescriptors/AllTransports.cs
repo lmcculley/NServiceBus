@@ -10,7 +10,7 @@
 
     public class AllTransports : ScenarioDescriptor
     {
-        public AllTransports()
+        protected AllTransports()
         {
             AddRange(ActiveTransports);
         }
@@ -47,7 +47,7 @@
     {
         public AllNativeMultiQueueTransactionTransports()
         {
-            AllTransportsFilter.Run(t => t.GetTransactionSupport() > TransactionSupport.MultiQueue, Remove);
+            AllTransportsFilter.Run(t => t.GetTransactionSupport() < TransactionSupport.MultiQueue, Remove);
         }
     }
 
@@ -72,17 +72,6 @@
         public AllTransportsWithMessageDrivenPubSub()
         {
             AllTransportsFilter.Run(t => t.HasNativePubSubSupport, Remove);
-        }
-    }
-
-    public class MsmqOnly : ScenarioDescriptor
-    {
-        public MsmqOnly()
-        {
-            if (Transports.Default == Transports.Msmq)
-            {
-                Add(Transports.Msmq);
-            }
         }
     }
 

@@ -18,10 +18,9 @@
             itemDescriptors = behaviorList.ToArray();
         }
 
-        public async Task Invoke(BehaviorContextStacker contextStacker)
+        public async Task Invoke(BehaviorContext context)
         {
             var outerPipe = false;
-            var context = contextStacker.GetCurrentOrRootContext();
             try
             {
                 if (!context.TryGet(out diagnostics))
@@ -32,7 +31,7 @@
                     notifications.Pipeline.InvokeReceiveStarted(diagnostics.StepsDiagnostics);
                 }
 
-                await InvokeNext(context, contextStacker, 0).ConfigureAwait(false);
+                await InvokeNext(context, 0).ConfigureAwait(false);
 
                 if (outerPipe)
                 {
@@ -59,32 +58,30 @@
 
         public void Dispose()
         {
-            
+
         }
 
-        async Task<BehaviorContext> InvokeNext(BehaviorContext context, BehaviorContextStacker contextStacker, int currentIndex)
+        async Task InvokeNext(BehaviorContext context, int currentIndex)
         {
-            Guard.AgainstNull("context", context);
+            Guard.AgainstNull(nameof(context), context);
 
             if (currentIndex == itemDescriptors.Length)
             {
-                return context;
+                return;
             }
 
             var behavior = itemDescriptors[currentIndex];
             var stepEnded = new Observable<StepEnded>();
-            contextStacker.Push(context);
             try
             {
                 diagnostics.StepsDiagnostics.OnNext(new StepStarted(lookupSteps[behavior.Type], behavior.Type, stepEnded));
 
                 var duration = Stopwatch.StartNew();
 
-                BehaviorContext innermostContext = null;
                 await behavior.Invoke(context, async newContext =>
                 {
                     duration.Stop();
-                    innermostContext = await InvokeNext(newContext, contextStacker, currentIndex + 1).ConfigureAwait(false);
+                    await InvokeNext(newContext, currentIndex + 1).ConfigureAwait(false);
                     duration.Start();
                 }).ConfigureAwait(false);
 
@@ -92,18 +89,12 @@
 
                 stepEnded.OnNext(new StepEnded(duration.Elapsed));
                 stepEnded.OnCompleted();
-
-                return innermostContext ?? context;
             }
             catch (Exception ex)
             {
                 stepEnded.OnError(ex);
 
                 throw;
-            }
-            finally
-            {
-                contextStacker.Pop();
             }
         }
 
