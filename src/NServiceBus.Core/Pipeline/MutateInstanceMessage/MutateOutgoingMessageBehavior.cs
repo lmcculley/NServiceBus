@@ -12,8 +12,8 @@
     {
         public override async Task Invoke(OutgoingLogicalMessageContext context, Func<Task> next)
         {
-            InvokeHandlerContext incomingState;
-            context.TryGetRootContext(out incomingState);
+            InvokeHandlerContextImpl incomingState;
+            context.Extensions.TryGetRootContext(out incomingState);
 
             object messageBeingHandled = null;
             Dictionary<string, string> incomingHeaders = null;
