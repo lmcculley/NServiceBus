@@ -16,11 +16,11 @@
             context.Extensions.TryGetRootContext(out incomingState);
 
             object messageBeingHandled = null;
-            Dictionary<string, string> incomingHeaders = null;
+            IReadOnlyDictionary<string, string> incomingHeaders = null;
             if (incomingState != null)
             {
                 messageBeingHandled = incomingState.MessageBeingHandled;
-                incomingHeaders = incomingState.Headers;
+                incomingHeaders = incomingState.MessageHeaders;
             }
             var mutatorContext = new MutateOutgoingMessageContext(
                 context.Message.Instance, 
