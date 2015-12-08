@@ -1,37 +1,37 @@
 namespace NServiceBus
 {
+    using System.Threading.Tasks;
     using System.Transactions;
+    using NServiceBus.Extensibility;
     using NServiceBus.Outbox;
     using NServiceBus.Persistence;
     using NServiceBus.Transports;
 
     class InMemoryTransactionalSynchronizedStorageAdapter : ISynchronizedStorageAdapter
     {
-        public bool TryAdapt(OutboxTransaction transaction, out CompletableSynchronizedStorageSession session)
+        public Task<CompletableSynchronizedStorageSession> TryAdapt(OutboxTransaction transaction, ContextBag context)
         {
             var inMemOutboxTransaction = transaction as InMemoryOutboxTransaction;
             if (inMemOutboxTransaction != null)
             {
-                session = new InMemorySynchronizedStorageSession(inMemOutboxTransaction.Transaction);
-                return true;
+                CompletableSynchronizedStorageSession session = new InMemorySynchronizedStorageSession(inMemOutboxTransaction.Transaction);
+                return Task.FromResult(session);
             }
-            session = null;
-            return false;
+            return Task.FromResult<CompletableSynchronizedStorageSession>(null);
         }
 
-        public bool TryAdapt(TransportTransaction transportTransaction, out CompletableSynchronizedStorageSession session)
+        public Task<CompletableSynchronizedStorageSession> TryAdapt(TransportTransaction transportTransaction, ContextBag context)
         {
             Transaction ambientTransaction;
             
             if (transportTransaction.TryGet(out ambientTransaction))
             {
                 var transaction = new InMemoryTransaction();
-                session = new InMemorySynchronizedStorageSession(transaction);
+                CompletableSynchronizedStorageSession session = new InMemorySynchronizedStorageSession(transaction);
                 ambientTransaction.EnlistVolatile(new EnlistmentNotification(transaction), EnlistmentOptions.None);
-                return true;
+                return Task.FromResult(session);
             }
-            session = null;
-            return false;
+            return Task.FromResult<CompletableSynchronizedStorageSession>(null);
         }
 
         private class EnlistmentNotification : IEnlistmentNotification
