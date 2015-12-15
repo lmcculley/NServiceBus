@@ -10,18 +10,17 @@ namespace NServiceBus
     using NServiceBus.TransportDispatch;
     using NServiceBus.Transports;
 
-    class MoveFaultsToErrorQueueBehavior : Behavior<ITransportReceiveContext>
+    class MoveFaultsToErrorQueueBehavior : ForkConnector<ITransportReceiveContext, IRoutingContext>
     {
-        public MoveFaultsToErrorQueueBehavior(CriticalError criticalError, IPipelineBase<IRoutingContext> dispatchPipeline, HostInformation hostInformation, BusNotifications notifications, string errorQueueAddress)
+        public MoveFaultsToErrorQueueBehavior(CriticalError criticalError, HostInformation hostInformation, BusNotifications notifications, string errorQueueAddress)
         {
             this.criticalError = criticalError;
-            this.dispatchPipeline = dispatchPipeline;
             this.hostInformation = hostInformation;
             this.notifications = notifications;
             this.errorQueueAddress = errorQueueAddress;
         }
 
-        public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
+        public override async Task Invoke(ITransportReceiveContext context, Func<Task> next, Func<IRoutingContext, Task> fork)
         {
             try
             {
@@ -54,7 +53,7 @@ namespace NServiceBus
                         new UnicastRoutingStrategy(errorQueueAddress), 
                         context);
                     
-                    await dispatchPipeline.Invoke(dispatchContext).ConfigureAwait(false);
+                    await fork(dispatchContext).ConfigureAwait(false);
 
                     notifications.Errors.InvokeMessageHasBeenSentToErrorQueue(message,exception);
                 }
@@ -67,7 +66,6 @@ namespace NServiceBus
         }
 
         CriticalError criticalError;
-        IPipelineBase<IRoutingContext> dispatchPipeline;
         HostInformation hostInformation;
         BusNotifications notifications;
         string errorQueueAddress;

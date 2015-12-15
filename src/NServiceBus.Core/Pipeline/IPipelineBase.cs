@@ -2,7 +2,8 @@
 {
     using System.Threading.Tasks;
 
-    interface IPipelineBase<T>
+
+    interface IPipelineBase<T> : IPipeline
     {
         Task Invoke(T context);
     }

@@ -34,7 +34,8 @@ namespace NServiceBus
 
         public async Task<IEndpointInstance> Start()
         {
-            var busInterface = new StartUpBusInterface(builder);
+            var pipelineCache = new PipelineCache(builder, settings);
+            var busInterface = new StartUpBusInterface(builder, pipelineCache);
             var busSession = busInterface.CreateBusSession();
 
             await RunInstallers().ConfigureAwait(false);
@@ -43,10 +44,10 @@ namespace NServiceBus
 
             AppDomain.CurrentDomain.SetPrincipalPolicy(PrincipalPolicy.WindowsPrincipal);
 
-            var pipelineCollection = CreateIncomingPipelines();
+            var pipelineCollection = CreateIncomingPipelines(pipelineCache);
 
             var runningInstance = new RunningEndpointInstance(builder, pipelineCollection, runner, featureRunner, busInterface);
-
+            
             // set the started endpoint on CriticalError to pass the endpoint to the critical error action
             builder.Build<CriticalError>().Endpoint = runningInstance;
 
@@ -60,7 +61,7 @@ namespace NServiceBus
             return pipelineCollection.Start();
         }
 
-        PipelineCollection CreateIncomingPipelines()
+        PipelineCollection CreateIncomingPipelines(PipelineCache pipelineCache)
         {
             PipelineCollection pipelineCollection;
             if (settings.GetOrDefault<bool>("Endpoint.SendOnly"))
@@ -69,7 +70,7 @@ namespace NServiceBus
             }
             else
             {
-                var pipelines = BuildPipelines().ToArray();
+                var pipelines = BuildPipelines(pipelineCache).ToArray();
                 pipelineCollection = new PipelineCollection(pipelines);
             }
             return pipelineCollection;
@@ -113,20 +114,24 @@ namespace NServiceBus
         class StartUpBusInterface : IBusSessionFactory
         {
             IBuilder builder;
+            readonly PipelineCache cache;
 
-            public StartUpBusInterface(IBuilder builder)
+            public StartUpBusInterface(IBuilder builder, PipelineCache cache)
             {
+                this.cache = cache;
                 this.builder = builder;
             }
 
             public IBusSession CreateBusSession()
             {
                 var rootContext = new RootContext(builder);
+                // TODO: Would be better to pass directly as required into root context
+                rootContext.Set(cache);
                 return new BusSession(rootContext);
             }
         }
 
-        IEnumerable<TransportReceiver> BuildPipelines()
+        IEnumerable<TransportReceiver> BuildPipelines(PipelineCache cache)
         {
             var errorQueue = ErrorQueueSettings.GetConfiguredErrorQueue(settings);
 
@@ -135,13 +140,13 @@ namespace NServiceBus
 
             var pushSettings = new PushSettings(settings.LocalAddress(), errorQueue, settings.GetOrDefault<bool>("Transport.PurgeOnStartup"), requiredTransactionSupport);
 
-            yield return BuildPipelineInstance(pipelineConfiguration.MainPipeline, "Main", pushSettings, dequeueLimitations);
+            yield return BuildPipelineInstance(pipelineConfiguration.MainPipeline, "Main", pushSettings, dequeueLimitations, cache);
 
             foreach (var satellitePipeline in pipelineConfiguration.SatellitePipelines)
             {
                 var satellitePushSettings = new PushSettings(satellitePipeline.ReceiveAddress, errorQueue, settings.GetOrDefault<bool>("Transport.PurgeOnStartup"), satellitePipeline.RequiredTransportTransactionMode);
 
-                yield return BuildPipelineInstance(satellitePipeline, satellitePipeline.Name, satellitePushSettings, satellitePipeline.RuntimeSettings);
+                yield return BuildPipelineInstance(satellitePipeline, satellitePipeline.Name, satellitePushSettings, satellitePipeline.RuntimeSettings, cache);
             }
         }
 
@@ -178,7 +183,7 @@ namespace NServiceBus
             return PushRuntimeSettings.Default;
         }
 
-        TransportReceiver BuildPipelineInstance(PipelineModifications modifications, string name, PushSettings pushSettings, PushRuntimeSettings runtimeSettings)
+        TransportReceiver BuildPipelineInstance(PipelineModifications modifications, string name, PushSettings pushSettings, PushRuntimeSettings runtimeSettings, PipelineCache cache)
         {
             var pipelineInstance = new PipelineBase<ITransportReceiveContext>(builder, settings, modifications);
             var receiver = new TransportReceiver(
@@ -187,6 +192,7 @@ namespace NServiceBus
                 builder.Build<IPushMessages>(),
                 pushSettings,
                 pipelineInstance,
+                cache,
                 runtimeSettings);
 
             return receiver;

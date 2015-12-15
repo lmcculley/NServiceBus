@@ -1,6 +1,5 @@
 ﻿namespace NServiceBus.Features
 {
-    using NServiceBus.Audit;
     using NServiceBus.Pipeline;
     using NServiceBus.Transports;
 
@@ -23,14 +22,7 @@
         {
             context.Pipeline.Register(WellKnownStep.AuditProcessedMessage, typeof(InvokeAuditPipelineBehavior), "Execute the audit pipeline");
             context.Pipeline.RegisterConnector<AuditToDispatchConnector>("Dispatches the audit message to the transport");
-         
-            context.Container.ConfigureComponent(b =>
-            {
-                var pipelinesCollection = context.Settings.Get<PipelineConfiguration>();
-                var auditPipeline = new PipelineBase<IAuditContext>(b, context.Settings, pipelinesCollection.MainPipeline);
-
-                return new InvokeAuditPipelineBehavior(auditPipeline,auditConfig.Address);
-            }, DependencyLifecycle.InstancePerCall);
+            context.Pipeline.RegisterFork<InvokeAuditPipelineBehavior>("Creates the audit pipeline fork.");
 
             context.Container.ConfigureComponent(b => new AuditToDispatchConnector(auditConfig.TimeToBeReceived), DependencyLifecycle.SingleInstance);
             context.Settings.Get<QueueBindings>().BindSending(auditConfig.Address);

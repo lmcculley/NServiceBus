@@ -16,10 +16,12 @@ namespace NServiceBus
             IPushMessages receiver, 
             PushSettings pushSettings, 
             PipelineBase<ITransportReceiveContext> pipeline, 
+            PipelineCache pipelineCache,
             PushRuntimeSettings pushRuntimeSettings)
         {
             Id = id;
             this.pipeline = pipeline;
+            this.pipelineCache = pipelineCache;
             this.pushRuntimeSettings = pushRuntimeSettings;
             this.pushSettings = pushSettings;
             this.receiver = receiver;
@@ -65,6 +67,8 @@ namespace NServiceBus
             {
                 var context = new TransportReceiveContext(new IncomingMessage(pushContext.MessageId, pushContext.Headers, pushContext.BodyStream), pushContext.TransportTransaction, new RootContext(childBuilder));
                 context.Extensions.Merge(pushContext.Context);
+                // TODO: Make it required parameter on TransportReceiveContext?
+                context.Set(pipelineCache);
                 await pipeline.Invoke(context).ConfigureAwait(false);
             }
         }
@@ -78,5 +82,6 @@ namespace NServiceBus
 
         bool isStarted;
         PushSettings pushSettings;
+        PipelineCache pipelineCache;
     }
 }

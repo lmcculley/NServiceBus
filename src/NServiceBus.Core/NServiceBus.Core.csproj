@@ -96,9 +96,12 @@
     <Compile Include="Audit\InvokeAuditPipelineBehavior.cs" />
     <Compile Include="EndpointHelper.cs" />
     <Compile Include="Endpoint.cs" />
+    <Compile Include="Pipeline\ForkConnector.cs" />
+    <Compile Include="Pipeline\PipelineCache.cs" />
     <Compile Include="Transports\MulticastTransportOperation.cs" />
     <Compile Include="Transports\TransportOperations.cs" />
     <Compile Include="Transports\UnicastTransportOperation.cs" />
+    <Compile Include="Pipeline\IForkConnector.cs" />
     <Compile Include="UnitOfWork\TransactionScopes\HandlerTransactionScopeWrapperBehavior.cs" />
     <Compile Include="BusSession.cs" />
     <Compile Include="CriticalError\CriticalErrorAction.cs" />
@@ -405,7 +408,7 @@
     <Compile Include="Recoverability\FirstLevelRetries\FirstLevelRetries.cs" />
     <Compile Include="Recoverability\FirstLevelRetries\FirstLevelRetryPolicy.cs" />
     <Compile Include="Pipeline\BehaviorInstance.cs" />
-    <Compile Include="Pipeline\Pipeline.cs" />
+    <Compile Include="Pipeline\IPipeline.cs" />
     <Compile Include="Pipeline\StepRegistrationSequence.cs" />
     <Compile Include="Pipeline\PipelineCollection.cs" />
     <Compile Include="Recoverability\SecondLevelRetries\CustomSecondLevelRetryPolicy.cs" />

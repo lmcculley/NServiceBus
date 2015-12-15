@@ -1,7 +1,6 @@
 namespace NServiceBus.Features
 {
     using NServiceBus.Hosting;
-    using NServiceBus.TransportDispatch;
     using NServiceBus.Transports;
 
     class StoreFaultsInErrorQueue : Feature
@@ -21,19 +20,11 @@ namespace NServiceBus.Features
 
             var errorQueue = ErrorQueueSettings.GetConfiguredErrorQueue(context.Settings);
 
-            context.Container.ConfigureComponent(b =>
-            {
-                var pipelinesCollection = context.Settings.Get<PipelineConfiguration>();
-
-                var dispatchPipeline = new PipelineBase<IRoutingContext>(b, context.Settings, pipelinesCollection.MainPipeline);
-
-                return new MoveFaultsToErrorQueueBehavior(
-                    b.Build<CriticalError>(),
-                    dispatchPipeline,
-                    b.Build<HostInformation>(),
-                    b.Build<BusNotifications>(),
-                    errorQueue);
-            }, DependencyLifecycle.InstancePerCall);
+            context.Container.ConfigureComponent(b => new MoveFaultsToErrorQueueBehavior(
+                b.Build<CriticalError>(),
+                b.Build<HostInformation>(),
+                b.Build<BusNotifications>(),
+                errorQueue), DependencyLifecycle.InstancePerCall);
 
             context.Settings.Get<QueueBindings>().BindSending(errorQueue);
 

@@ -134,5 +134,10 @@ namespace NServiceBus.Pipeline
         {
             Register(typeof(T).Name, typeof(T), description);
         }
+
+        internal void RegisterFork<T>(string description) where T : IForkConnector
+        {
+            Register(typeof(T).Name, typeof(T), description);
+        }
     }
 }
