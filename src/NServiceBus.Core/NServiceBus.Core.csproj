@@ -96,7 +96,7 @@
     <Compile Include="Audit\InvokeAuditPipelineBehavior.cs" />
     <Compile Include="EndpointHelper.cs" />
     <Compile Include="Endpoint.cs" />
-    <Compile Include="UnitOfWork\TransactionScopes\HandlerTransactionScopeWrapperBehavior.cs" />
+    <Compile Include="UnitOfWork\TransactionScopes\TransactionScopeUnitOfWorkBehavior.cs" />
     <Compile Include="BusSession.cs" />
     <Compile Include="CriticalError\CriticalErrorAction.cs" />
     <Compile Include="BusConfiguration.cs" />
@@ -118,7 +118,7 @@
     <Compile Include="Performance\Counters\IPerformanceCounterInstance.cs" />
     <Compile Include="Performance\Counters\NonFunctionalPerformanceCounterInstance.cs" />
     <Compile Include="Transports\TransactionModeSettingsExtensions.cs" />
-    <Compile Include="UnitOfWork\TransactionScopes\WrapHandlersInTransactionScope.cs" />
+    <Compile Include="UnitOfWork\TransactionScopes\TransactionScopeUnitOfWork.cs" />
     <Compile Include="Persistence\CompletableSynchronizedStorageSession.cs" />
     <Compile Include="Persistence\InMemory\InMemorySynchronizedStorage.cs" />
     <Compile Include="Persistence\InMemory\InMemoryTransactionalSynchronizedStorageAdapter.cs" />
@@ -501,6 +501,8 @@
     <Compile Include="MessageDeserializationException.cs" />
     <Compile Include="Hosting\AuditHostInformationBehavior.cs" />
     <Compile Include="Unicast\Transport\PipelineInfo.cs" />
+    <Compile Include="UnitOfWork\UnitOfWorkSettings.cs" />
+    <Compile Include="UnitOfWork\UnitOfWorkSettingsExtensions.cs" />
     <Compile Include="Utils\BaseDictionary.cs" />
     <Compile Include="Utils\MessageQueueExtensions.cs" />
     <Compile Include="Utils\PathUtilities.cs" />
@@ -576,7 +578,6 @@
     <Compile Include="SettingsExtentions.cs" />
     <Compile Include="Settings\ReadOnlySettings.cs" />
     <Compile Include="Settings\ScaleOutExtentions.cs" />
-    <Compile Include="Settings\TransactionSettingsExtentions.cs" />
     <Compile Include="Support\RuntimeEnvironment.cs" />
     <Compile Include="Performance\TimeToBeReceived\TimeToBeReceivedAttribute.cs" />
     <Compile Include="Transports\Receiving.cs" />
@@ -689,7 +690,6 @@
     <Compile Include="Serializers\Json\JsonMessageSerializer.cs" />
     <Compile Include="Serializers\XML\XmlMessageSerializer.cs" />
     <Compile Include="Serializers\XML\XmlSanitizingStream.cs" />
-    <Compile Include="Settings\TransactionSettings.cs" />
     <Compile Include="DelayedDelivery\TimeoutManager\Persistence\IPersistTimeouts.cs" />
     <Compile Include="DelayedDelivery\TimeoutManager\Persistence\TimeoutData.cs" />
     <Compile Include="Persistence\InMemory\TimeoutPersister\InMemoryTimeoutPersister.cs" />
@@ -724,7 +724,6 @@
     <Compile Include="Unicast\Transport\Config\UseTransportExtensions.cs" />
     <Compile Include="Recoverability\FirstLevelRetries\FlrStatusStorage.cs" />
     <Compile Include="Transports\TransportReceiver.cs" />
-    <Compile Include="Unicast\Transport\TransactionSettings.cs" />
     <Compile Include="Unicast\Transport\TransportConnectionString.cs" />
     <Compile Include="Unicast\RunningEndpointInstance.cs" />
     <Compile Include="UnitOfWork\IManageUnitsOfWork.cs" />
