@@ -3,11 +3,10 @@ namespace NServiceBus
     using System;
     using System.Threading.Tasks;
     using Janitor;
-    using Performance.Counters;
     using Pipeline;
 
     [SkipWeaving]
-    class ReceivePerformanceDiagnosticsBehavior : Behavior<PhysicalMessageProcessingContext>
+    class ReceivePerformanceDiagnosticsBehavior : Behavior<IIncomingPhysicalMessageContext>
     {
    
         public override Task Warmup()
@@ -19,7 +18,7 @@ namespace NServiceBus
             return base.Warmup();
         }
 
-        public override async Task Invoke(PhysicalMessageProcessingContext context, Func<Task> next)
+        public override async Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
         {
             messagesPulledFromQueueCounter.Increment();
 

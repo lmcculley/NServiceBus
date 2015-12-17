@@ -2,9 +2,9 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using NServiceBus.Features;
     using NServiceBus.MessageInterfaces.MessageMapper.Reflection;
-    using NServiceBus.Serializers;
 
     /// <summary>
     /// Base class for configuring <see cref="SerializationDefinition"/> features.
@@ -24,8 +24,6 @@
         /// </summary>
         protected internal sealed override void Setup(FeatureConfigurationContext context)
         {
-            context.Container.ConfigureComponent<MessageMapper>(DependencyLifecycle.SingleInstance);
-
             var serializerType = GetSerializerType(context);
             if (serializerType == null)
             {
@@ -38,6 +36,15 @@
             {
                 context.Container.ConfigureComponent(b => new MessageDeserializerResolver(b.BuildAll<IMessageSerializer>(), serializerType), DependencyLifecycle.SingleInstance);
             }
+            context.Container.ConfigureComponent(builder =>
+            {
+                var mapper = new MessageMapper();
+                var settings = context.Settings;
+                var conventions = settings.Get<Conventions>();
+                var messageTypes = settings.GetAvailableTypes().Where(conventions.IsMessageType);
+                mapper.Initialize(messageTypes);
+                return mapper;
+            },  DependencyLifecycle.SingleInstance);
         }
 
         /// <summary>
@@ -79,5 +86,6 @@
 
             return deserializers.ContainsKey(GetType().TypeHandle);
         }
+
     }
 }

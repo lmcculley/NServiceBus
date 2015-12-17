@@ -6,7 +6,6 @@
     using System.Linq;
     using System.Threading.Tasks;
     using OutgoingPipeline;
-    using NServiceBus.Pipeline.Contexts;
     using NServiceBus.Routing;
     using Transports;
     using NUnit.Framework;
@@ -30,7 +29,7 @@
                         {
                             {Headers.ReplyToAddress, "ReplyAddressOfIncomingMessage"}
                         },
-                        new MemoryStream()),
+                        new MemoryStream()), null,
                     new RootContext(null)));
 
             UnicastAddressTag addressTag = null;
@@ -56,7 +55,7 @@
                     new IncomingMessage(
                         "id",
                         new Dictionary<string, string>(),
-                        new MemoryStream()),
+                        new MemoryStream()), null,
                     new RootContext(null)));
 
             var ex = Assert.Throws<Exception>(async () => await behavior.Invoke(context, _ => Task.FromResult(0)));

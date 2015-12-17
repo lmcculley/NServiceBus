@@ -6,6 +6,7 @@ namespace NServiceBus.AcceptanceTests.Sagas
     using NServiceBus.AcceptanceTests.EndpointTemplates;
     using NServiceBus.Extensibility;
     using NServiceBus.Features;
+    using NServiceBus.Persistence;
     using NServiceBus.Pipeline;
     using NServiceBus.Sagas;
     using NUnit.Framework;
@@ -17,7 +18,7 @@ namespace NServiceBus.AcceptanceTests.Sagas
         public async Task Should_make_context_information_available()
         {
             var context = await Scenario.Define<Context>()
-                .WithEndpoint<SagaEndpoint>(b => b.When(bus => bus.SendLocalAsync(new StartSagaMessage())))
+                .WithEndpoint<SagaEndpoint>(b => b.When(bus => bus.SendLocal(new StartSagaMessage())))
                 .Done(c => c.FinderUsed)
                 .Run();
 
@@ -45,7 +46,7 @@ namespace NServiceBus.AcceptanceTests.Sagas
             class CustomFinder : IFindSagas<TestSaga07.SagaData07>.Using<StartSagaMessage>
             {
                 public Context Context { get; set; }
-                public Task<TestSaga07.SagaData07> FindBy(StartSagaMessage message, ReadOnlyContextBag context)
+                public Task<TestSaga07.SagaData07> FindBy(StartSagaMessage message, SynchronizedStorageSession storageSession, ReadOnlyContextBag context)
                 {
                     Context.ContextBag = context;
                     Context.FinderUsed = true;
@@ -71,11 +72,11 @@ namespace NServiceBus.AcceptanceTests.Sagas
                 }
             }
 
-            public class BehaviorWhichAddsThingsToTheContext : Behavior<PhysicalMessageProcessingContext>
+            public class BehaviorWhichAddsThingsToTheContext : Behavior<IIncomingPhysicalMessageContext>
             {
-                public override Task Invoke(PhysicalMessageProcessingContext context, Func<Task> next)
+                public override Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
                 {
-                    context.Set(new State
+                    context.Extensions.Set(new State
                     {
                         SomeData = "SomeData"
                     });

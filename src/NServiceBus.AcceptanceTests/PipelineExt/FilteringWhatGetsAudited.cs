@@ -19,7 +19,7 @@ namespace NServiceBus.AcceptanceTests.PipelineExt
         public async Task RunDemo()
         {
             var context = await Scenario.Define<Context>()
-                .WithEndpoint<UserEndpoint>(b => b.When(bus => bus.SendLocalAsync(new MessageToBeAudited())))
+                .WithEndpoint<UserEndpoint>(b => b.When(bus => bus.SendLocal(new MessageToBeAudited())))
                 .WithEndpoint<AuditSpy>()
                 .Done(c => c.Done)
                 .Run();
@@ -40,7 +40,7 @@ namespace NServiceBus.AcceptanceTests.PipelineExt
             {
                 public Task Handle(MessageToBeAudited message, IMessageHandlerContext context)
                 {
-                    return context.SendLocalAsync(new Message3());
+                    return context.SendLocal(new Message3());
                 }
             }
 
@@ -52,11 +52,11 @@ namespace NServiceBus.AcceptanceTests.PipelineExt
                 }
             }
 
-            class AddContextStorage : Behavior<PhysicalMessageProcessingContext>
+            class AddContextStorage : Behavior<IIncomingPhysicalMessageContext>
             {
-                public override Task Invoke(PhysicalMessageProcessingContext context, Func<Task> next)
+                public override Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
                 {
-                    context.Set(new AuditFilterResult());
+                    context.Extensions.Set(new AuditFilterResult());
 
                     return next();
                 }
@@ -71,13 +71,13 @@ namespace NServiceBus.AcceptanceTests.PipelineExt
                 }
             }
 
-            class SetFiltering : Behavior<LogicalMessageProcessingContext>
+            class SetFiltering : Behavior<IIncomingLogicalMessageContext>
             {
-                public override Task Invoke(LogicalMessageProcessingContext context, Func<Task> next)
+                public override Task Invoke(IIncomingLogicalMessageContext context, Func<Task> next)
                 {
                     if (context.Message.MessageType == typeof(MessageToBeAudited))
                     {
-                        context.Get<AuditFilterResult>().DoNotAuditMessage = true;
+                        context.Extensions.Get<AuditFilterResult>().DoNotAuditMessage = true;
                     }
 
                     return next();
@@ -89,13 +89,13 @@ namespace NServiceBus.AcceptanceTests.PipelineExt
                 public bool DoNotAuditMessage { get; set; }
             }
 
-            class FilteringAuditBehavior : Behavior<AuditContext>
+            class FilteringAuditBehavior : Behavior<IAuditContext>
             {
-                public override Task Invoke(AuditContext context, Func<Task> next)
+                public override Task Invoke(IAuditContext context, Func<Task> next)
                 {
                     AuditFilterResult result;
 
-                    if (context.TryGet(out result) && result.DoNotAuditMessage)
+                    if (context.Extensions.TryGet(out result) && result.DoNotAuditMessage)
                     {
                         return Task.FromResult(0);
                     }

@@ -2,23 +2,21 @@
 {
     using System;
     using System.Threading.Tasks;
-    using MessagingBestPractices;
     using OutgoingPipeline;
     using Pipeline;
-    using Routing.MessagingBestPractices;
 
-    class EnforceSendBestPracticesBehavior : Behavior<OutgoingSendContext>
+    class EnforceSendBestPracticesBehavior : Behavior<IOutgoingSendContext>
     {
         public EnforceSendBestPracticesBehavior(Validations validations)
         {
             this.validations = validations;
         }
 
-        public override Task Invoke(OutgoingSendContext context, Func<Task> next)
+        public override Task Invoke(IOutgoingSendContext context, Func<Task> next)
         {
             EnforceBestPracticesOptions options;
 
-            if (!context.TryGet(out options) || options.Enabled)
+            if (!context.Extensions.TryGet(out options) || options.Enabled)
             {
                 validations.AssertIsValidForSend(context.Message.MessageType);
             }

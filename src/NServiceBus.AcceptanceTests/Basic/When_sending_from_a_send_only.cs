@@ -13,7 +13,7 @@
         public async Task Should_receive_the_message()
         {
             var context = await Scenario.Define<Context>(c => { c.Id = Guid.NewGuid(); })
-                    .WithEndpoint<Sender>(b => b.When((bus, c) => bus.SendAsync(new MyMessage
+                    .WithEndpoint<Sender>(b => b.When((bus, c) => bus.Send(new MyMessage
                     {
                         Id = c.Id
                     })))
@@ -58,27 +58,37 @@
                 public Bootstrapper()
                 {
                     EnableByDefault();
-
-                    RegisterStartupTask<MyTask>();
                 }
 
                 protected override void Setup(FeatureConfigurationContext context)
                 {
+                    context.Container.ConfigureComponent<MyTask>(DependencyLifecycle.SingleInstance);
+
+                    context.RegisterStartupTask(b => b.Build<MyTask>());
                 }
 
                 public class MyTask : FeatureStartupTask
                 {
-                    public Context Context { get; set; }
+                    readonly Context scenarioContext;
 
-                    protected override Task OnStart(IBusContext context)
+                    public MyTask(Context scenarioContext)
                     {
-                        Context.SendOnlyEndpointWasStarted = true;
+                        this.scenarioContext = scenarioContext;
+                    }
+
+                    protected override Task OnStart(IBusSession session)
+                    {
+                        scenarioContext.SendOnlyEndpointWasStarted = true;
+                        return Task.FromResult(0);
+                    }
+
+                    protected override Task OnStop(IBusSession session)
+                    {
                         return Task.FromResult(0);
                     }
                 }
             }
         }
-
 
         public class Sender : EndpointConfigurationBuilder
         {

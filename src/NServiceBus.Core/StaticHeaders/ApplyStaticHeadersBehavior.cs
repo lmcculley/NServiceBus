@@ -4,10 +4,8 @@ namespace NServiceBus
     using System.Threading.Tasks;
     using NServiceBus.Pipeline;
     using NServiceBus.Pipeline.OutgoingPipeline;
-    using NServiceBus.StaticHeaders;
-    using NServiceBus.TransportDispatch;
 
-    class ApplyStaticHeadersBehavior:Behavior<OutgoingLogicalMessageContext>
+    class ApplyStaticHeadersBehavior:Behavior<IOutgoingLogicalMessageContext>
     {
         CurrentStaticHeaders currentStaticHeaders;
 
@@ -16,11 +14,11 @@ namespace NServiceBus
             this.currentStaticHeaders = currentStaticHeaders;
         }
 
-        public override Task Invoke(OutgoingLogicalMessageContext context, Func<Task> next)
+        public override Task Invoke(IOutgoingLogicalMessageContext context, Func<Task> next)
         {
             foreach (var staticHeader in currentStaticHeaders)
             {
-                context.SetHeader(staticHeader.Key,staticHeader.Value);
+                context.Headers[staticHeader.Key] = staticHeader.Value;
             }
 
             return next();

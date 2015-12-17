@@ -1,39 +1,31 @@
 namespace NServiceBus.Features
 {
     using System;
-    using System.Threading.Tasks;
-    using NServiceBus.Routing;
-    using NServiceBus.Settings;
 
     class FileRoutingTableFeature : Feature
     {
+        public const string CheckIntervalSettingsKey = "FileBasedRouting.CheckInterval";
+        public const string MaxLoadAttemptsSettingsKey = "FileBasedRouting.MaxLoadAttempts";
+        public const string FilePathSettingsKey = "FileBasedRouting.FilePath";
+
         public FileRoutingTableFeature()
         {
+            Defaults(s =>
+            {
+                s.SetDefault(CheckIntervalSettingsKey, TimeSpan.FromSeconds(30));
+                s.SetDefault(MaxLoadAttemptsSettingsKey, 10);
+            });
             DependsOn<RoutingFeature>();
-            RegisterStartupTask<StartupTask>();
         }
 
         protected internal override void Setup(FeatureConfigurationContext context)
         {
-            context.Container.RegisterSingleton(new FileRoutingTable(context.Settings.Get<string>("FileBasedRouting.BasePath"), TimeSpan.FromSeconds(5)));
-        }
+            var filePath = context.Settings.Get<string>(FilePathSettingsKey);
+            var checkInterval = context.Settings.Get<TimeSpan>(CheckIntervalSettingsKey);
+            var maxLoadAttempts = context.Settings.Get<int>(MaxLoadAttemptsSettingsKey);
 
-        class StartupTask : FeatureStartupTask
-        {
-            ReadOnlySettings settings;
-            FileRoutingTable routingTable;
-
-            public StartupTask(ReadOnlySettings settings, FileRoutingTable routingTable)
-            {
-                this.settings = settings;
-                this.routingTable = routingTable;
-            }
-
-            protected override Task OnStart(IBusContext contexts)
-            {
-                settings.Get<EndpointInstances>().AddDynamic(e => routingTable.GetInstances(e));
-                return TaskEx.Completed;
-            }
+            var fileRoutingTable = new FileRoutingTable(filePath, checkInterval, new AsyncTimer(), new RoutingFileAccess(), maxLoadAttempts, context.Settings);
+            context.RegisterStartupTask(fileRoutingTable);
         }
     }
 }

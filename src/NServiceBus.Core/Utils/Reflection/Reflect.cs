@@ -1,6 +1,6 @@
 //http://netfx.googlecode.com/svn/trunk/Source/Reflection/Reflect.cs
 
-namespace NServiceBus.Utils.Reflection
+namespace NServiceBus
 {
     using System;
     using System.Collections.Generic;
@@ -32,10 +32,10 @@ namespace NServiceBus.Utils.Reflection
 
         static MemberInfo GetMemberInfo(Expression member, bool checkForSingleDot)
         {
-            if (member == null) throw new ArgumentNullException("member");
+            if (member == null) throw new ArgumentNullException(nameof(member));
 
             var lambda = member as LambdaExpression;
-            if (lambda == null) throw new ArgumentException("Not a lambda expression", "member");
+            if (lambda == null) throw new ArgumentException("Not a lambda expression", nameof(member));
 
             MemberExpression memberExpr = null;
 
@@ -52,7 +52,7 @@ namespace NServiceBus.Utils.Reflection
                 memberExpr = lambda.Body as MemberExpression;
             }
 
-            if (memberExpr == null) throw new ArgumentException("Not a member access", "member");
+            if (memberExpr == null) throw new ArgumentException("Not a member access", nameof(member));
 
             if (checkForSingleDot)
             {
@@ -60,7 +60,7 @@ namespace NServiceBus.Utils.Reflection
                 {
                     return memberExpr.Member;
                 }
-                throw new ArgumentException("Argument passed contains more than a single dot which is not allowed: " + member, "member");
+                throw new ArgumentException("Argument passed contains more than a single dot which is not allowed: " + member, nameof(member));
             }
 
             return memberExpr.Member;

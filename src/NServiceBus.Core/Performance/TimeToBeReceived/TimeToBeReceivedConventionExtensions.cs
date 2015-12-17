@@ -1,7 +1,6 @@
 ﻿namespace NServiceBus
 {
     using System;
-    using NServiceBus.Performance.TimeToBeReceived;
 
     /// <summary>
     /// Provides the ability to specify TTBR using a convention.
@@ -13,8 +12,8 @@
         /// </summary>
         public static ConventionsBuilder DefiningTimeToBeReceivedAs(this ConventionsBuilder builder, Func<Type, TimeSpan> retrieveTimeToBeReceived)
         {
-            Guard.AgainstNull("builder", builder);
-            Guard.AgainstNull("retrieveTimeToBeReceived", retrieveTimeToBeReceived);
+            Guard.AgainstNull(nameof(builder), builder);
+            Guard.AgainstNull(nameof(retrieveTimeToBeReceived), retrieveTimeToBeReceived);
             
             builder.Settings.Set<UserDefinedTimeToBeReceivedConvention>(new UserDefinedTimeToBeReceivedConvention(retrieveTimeToBeReceived)); 
 

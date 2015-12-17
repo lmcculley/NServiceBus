@@ -6,7 +6,6 @@ namespace NServiceBus.Core.Tests.DataBus
     using System.Runtime.Serialization.Formatters.Binary;
     using System.Threading.Tasks;
     using NServiceBus.DataBus;
-    using NServiceBus.Pipeline.Contexts;
     using Unicast.Messages;
     using NUnit.Framework;
     using Conventions = NServiceBus.Conventions;
@@ -43,10 +42,11 @@ namespace NServiceBus.Core.Tests.DataBus
 
                 fakeDatabus.StreamsToReturn[databusKey] = stream;
 
-
                 await receiveBehavior.Invoke(
-                    new LogicalMessageProcessingContext(
+                    new IncomingLogicalMessageContext(
                         message,
+                        "messageId",
+                        "replyToAddress",
                         new Dictionary<string, string>
                         {
                             {"NServiceBus.DataBus." + propertyKey, databusKey}

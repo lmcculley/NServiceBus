@@ -45,18 +45,18 @@
             {
                 public void Customize(BusConfiguration config)
                 {
-                    config.EndpointName("ineedinitialization_receiver");
+                    config.EndpointName("INeedInitialization_receiver");
                 }
             }
 
             public class SendMessageToSender : IWantToRunWhenBusStartsAndStops
             {
-                public Task StartAsync(IBusContext context)
+                public Task Start(IBusSession session)
                 {
-                    return context.SendAsync(new SendMessage());
+                    return session.Send(new SendMessage());
                 }
 
-                public Task StopAsync(IBusContext context)
+                public Task Stop(IBusSession session)
                 {
                     return Task.FromResult(0);
                 }
@@ -78,7 +78,7 @@
         {
             public Task Handle(SendMessage message, IMessageHandlerContext context)
             {
-                return context.SendAsync("ineedinitialization_receiver", new MyMessage());
+                return context.Send("INeedInitialization_receiver", new MyMessage());
             }
         }
 

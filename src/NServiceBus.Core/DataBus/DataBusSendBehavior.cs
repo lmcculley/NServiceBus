@@ -9,9 +9,8 @@
     using NServiceBus.Pipeline.OutgoingPipeline;
     using Performance.TimeToBeReceived;
     using Pipeline;
-    using TransportDispatch;
 
-    class DataBusSendBehavior : Behavior<OutgoingLogicalMessageContext>
+    class DataBusSendBehavior : Behavior<IOutgoingLogicalMessageContext>
     {
         public IDataBus DataBus { get; set; }
 
@@ -19,7 +18,7 @@
 
         public Conventions Conventions { get; set; }
 
-        public override async Task Invoke(OutgoingLogicalMessageContext context, Func<Task> next)
+        public override async Task Invoke(IOutgoingLogicalMessageContext context, Func<Task> next)
         {
             var timeToBeReceived = TimeSpan.MaxValue;
 
@@ -73,7 +72,7 @@
                     }
 
                     //we use the headers to in order to allow the infrastructure (eg. the gateway) to modify the actual key
-                    context.SetHeader("NServiceBus.DataBus." + headerKey,headerValue);
+                    context.Headers["NServiceBus.DataBus." + headerKey] = headerValue;
                 }
             }
 

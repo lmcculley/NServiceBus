@@ -9,9 +9,7 @@
     using DelayedDelivery;
     using DeliveryConstraints;
     using Faults;
-    using NServiceBus.Pipeline;
     using NServiceBus.Pipeline.Contexts;
-    using NServiceBus.Recoverability.SecondLevelRetries;
     using NServiceBus.Routing;
     using TransportDispatch;
     using Transports;
@@ -33,7 +31,7 @@
 
             var slrNotification = new SecondLevelRetry();
 
-            notifications.Errors.MessageHasBeenSentToSecondLevelRetries.Subscribe(slr => { slrNotification = slr; });
+            notifications.Errors.MessageHasBeenSentToSecondLevelRetries += (sender, retry) => slrNotification = retry;
 
             await behavior.Invoke(CreateContext("someid", 1), () => { throw new Exception("testex"); });
 
@@ -135,20 +133,20 @@
             Assert.AreEqual(originalContent, Encoding.UTF8.GetString(message.Body));
         }
 
-        TransportReceiveContext CreateContext(string messageId, int currentRetryCount, byte[] messageBody = null)
+        ITransportReceiveContext CreateContext(string messageId, int currentRetryCount, byte[] messageBody = null)
         {
             return new TransportReceiveContext(new IncomingMessage(messageId, new Dictionary<string, string>
             {
                 {Headers.Retries, currentRetryCount.ToString()}
-            }, new MemoryStream(messageBody ?? new byte[0])), new RootContext(null));
+            }, new MemoryStream(messageBody ?? new byte[0])), null, new RootContext(null));
         }
     }
 
-    class FakeDispatchPipeline : IPipelineBase<RoutingContext>
+    class FakeDispatchPipeline : IPipelineBase<IRoutingContext>
     {
-        public RoutingContext RoutingContext { get; set; }
+        public IRoutingContext RoutingContext { get; set; }
 
-        public Task Invoke(RoutingContext context)
+        public Task Invoke(IRoutingContext context)
         {
             RoutingContext = context;
             return Task.FromResult(0);

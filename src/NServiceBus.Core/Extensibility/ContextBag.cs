@@ -77,15 +77,13 @@ namespace NServiceBus.Extensibility
         }
 
         /// <summary>
-        /// Merges the passed context into this one.
+        /// Removes the instance type from the context.
         /// </summary>
-        /// <param name="context">The source context.</param>
-        internal void Merge(ContextBag context)
+        /// <param name="key">The key of the value being removed.</param>
+        public void Remove(string key)
         {
-            foreach (var kvp in context.stash)
-            {
-                stash[kvp.Key] = kvp.Value;
-            }
+            Guard.AgainstNullAndEmpty(nameof(key), key);
+            stash.Remove(key);
         }
 
         /// <summary>
@@ -93,29 +91,8 @@ namespace NServiceBus.Extensibility
         /// </summary>
         public void Set<T>(string key, T t)
         {
-            Guard.AgainstNullAndEmpty("key", key);
+            Guard.AgainstNullAndEmpty(nameof(key), key);
             stash[key] = t;
-        }
-
-        /// <summary>
-        /// Walk the tree of context until one is found of the type <typeparamref name="T"/>.
-        /// </summary>
-        internal bool TryGetRootContext<T>(out T result) where T : ContextBag
-        {
-            var cast = this as T;
-            if (cast != null)
-            {
-                result = cast;
-                return true;
-            }
-
-            if (parentBag == null)
-            {
-                result = null;
-                return false;
-            }
-
-            return parentBag.TryGetRootContext(out result);
         }
 
         /// <summary>
@@ -127,7 +104,7 @@ namespace NServiceBus.Extensibility
         /// <returns><code>true</code> if found, otherwise <code>false</code>.</returns>
         public bool TryGet<T>(string key, out T result)
         {
-            Guard.AgainstNullAndEmpty("key", key);
+            Guard.AgainstNullAndEmpty(nameof(key), key);
             object value;
             if (stash.TryGetValue(key, out value))
             {
@@ -149,9 +126,22 @@ namespace NServiceBus.Extensibility
             result = default(T);
             return false;
         }
+
+        /// <summary>
+        /// Merges the passed context into this one.
+        /// </summary>
+        /// <param name="context">The source context.</param>
+        internal void Merge(ContextBag context)
+        {
+            foreach (var kvp in context.stash)
+            {
+                stash[kvp.Key] = kvp.Value;
+            }
+        }
+
         T Get<T>(string key)
         {
-            Guard.AgainstNullAndEmpty("key", key);
+            Guard.AgainstNullAndEmpty(nameof(key), key);
             T result;
 
             if (!TryGet(key, out result))
@@ -160,12 +150,6 @@ namespace NServiceBus.Extensibility
             }
 
             return result;
-        }
-
-        void Remove(string key)
-        {
-            Guard.AgainstNullAndEmpty("key", key);
-            stash.Remove(key);
         }
 
         Dictionary<string, object> stash = new Dictionary<string, object>();

@@ -14,7 +14,7 @@
         public async Task Should_match_different_saga()
         {
             await Scenario.Define<Context>()
-                    .WithEndpoint<Endpoint>(b => b.When(bus => bus.SendLocalAsync(new StartSaga1 { DataId = Guid.NewGuid() })))
+                    .WithEndpoint<Endpoint>(b => b.When(bus => bus.SendLocal(new StartSaga1 { DataId = Guid.NewGuid() })))
                     .Done(c => c.DidSaga2ReceiveMessage)
                     .Repeat(r => r.For(Transports.Default))
                     .Should(c => Assert.True(c.DidSaga2ReceiveMessage))
@@ -42,12 +42,12 @@
                 public Task Handle(StartSaga1 message, IMessageHandlerContext context)
                 {
                     Data.DataId = message.DataId;
-                    return RequestTimeoutAsync(context, TimeSpan.FromSeconds(1), new Saga1Timeout());
+                    return RequestTimeout(context, TimeSpan.FromSeconds(1), new Saga1Timeout());
                 }
 
                 public async Task Timeout(Saga1Timeout state, IMessageHandlerContext context)
                 {
-                    await context.SendLocalAsync(new StartSaga2
+                    await context.SendLocal(new StartSaga2
                     {
                         DataId = Data.DataId
                     });

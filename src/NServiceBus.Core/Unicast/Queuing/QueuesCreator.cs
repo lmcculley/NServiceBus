@@ -1,13 +1,12 @@
-namespace NServiceBus.Unicast.Queuing
+namespace NServiceBus
 {
     using System.Threading.Tasks;
     using Installation;
-    using Logging;
     using NServiceBus.ObjectBuilder;
     using NServiceBus.Settings;
     using Transports;
 
-    class QueuesCreator : IInstall
+    class QueuesCreator : INeedToInstallSomething
     {
         readonly IBuilder builder;
         readonly ReadOnlySettings settings;
@@ -18,7 +17,7 @@ namespace NServiceBus.Unicast.Queuing
             this.settings = settings;
         }
 
-        public Task InstallAsync(string identity)
+        public Task Install(string identity)
         {
             if (settings.Get<bool>("Endpoint.SendOnly"))
             {
@@ -31,26 +30,7 @@ namespace NServiceBus.Unicast.Queuing
             var queueCreator = builder.Build<ICreateQueues>();
             var queueBindings = settings.Get<QueueBindings>();
 
-            foreach (var receiveLogicalAddress in queueBindings.ReceivingAddresses)
-            {
-                CreateQueue(queueCreator, identity, receiveLogicalAddress);
-            }
-
-            foreach (var sendingAddress in queueBindings.SendingAddresses)
-            {
-                CreateQueue(queueCreator, identity, sendingAddress);
-            }
-
-            return TaskEx.Completed;
+            return queueCreator.CreateQueueIfNecessary(queueBindings, identity);
         }
-
-        void CreateQueue(ICreateQueues queueCreator, string identity, string transportAddress)
-        {
-            queueCreator.CreateQueueIfNecessary(transportAddress, identity);
-            Logger.DebugFormat("Verified that the queue: [{0}] existed", transportAddress);
-        }
-
-        static ILog Logger = LogManager.GetLogger<QueuesCreator>();
-
     }
 }

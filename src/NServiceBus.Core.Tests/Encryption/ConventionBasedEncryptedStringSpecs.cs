@@ -3,7 +3,6 @@
     using System;
     using System.Linq;
     using NUnit.Framework;
-    using Conventions = NServiceBus.Conventions;
 
     [TestFixture]
     public class When_inspecting_a_message_with_user_defined_convention : UserDefinedConventionContext

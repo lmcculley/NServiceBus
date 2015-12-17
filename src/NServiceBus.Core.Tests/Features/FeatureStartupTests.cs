@@ -22,10 +22,10 @@
 
             var builder = new FakeBuilder(typeof(FeatureWithStartupTask.Runner));
 
-            featureSettings.SetupFeatures(new FeatureConfigurationContext(null, null, null));
+            featureSettings.SetupFeatures(null, null);
 
             await featureSettings.StartFeatures(builder, null);
-            await featureSettings.StopFeatures(builder, null);
+            await featureSettings.StopFeatures(null);
 
             Assert.True(FeatureWithStartupTask.Runner.Started);
             Assert.True(FeatureWithStartupTask.Runner.Stopped);
@@ -42,10 +42,10 @@
 
             var builder = new FakeBuilder(typeof(FeatureWithStartupTaskWhichIsDisposable.Runner));
 
-            featureSettings.SetupFeatures(new FeatureConfigurationContext(null, null, null));
+            featureSettings.SetupFeatures(null, null);
 
             await featureSettings.StartFeatures(builder, null);
-            await featureSettings.StopFeatures(builder, null);
+            await featureSettings.StopFeatures(null);
 
             Assert.True(FeatureWithStartupTaskWhichIsDisposable.Runner.Disposed);
         }
@@ -55,18 +55,22 @@
             public FeatureWithStartupTask()
             {
                 EnableByDefault();
-                RegisterStartupTask<Runner>();
+            }
+
+            protected internal override void Setup(FeatureConfigurationContext context)
+            {
+                context.RegisterStartupTask(new Runner());
             }
 
             public class Runner : FeatureStartupTask
             {
-                protected override Task OnStart(IBusContext context)
+                protected override Task OnStart(IBusSession session)
                 {
                     Started = true;
                     return Task.FromResult(0);
                 }
 
-                protected override Task OnStop(IBusContext context)
+                protected override Task OnStop(IBusSession session)
                 {
                     Stopped = true;
                     return Task.FromResult(0);
@@ -82,14 +86,23 @@
             public FeatureWithStartupTaskWhichIsDisposable()
             {
                 EnableByDefault();
-                RegisterStartupTask<Runner>();
+            }
+
+            protected internal override void Setup(FeatureConfigurationContext context)
+            {
+                context.RegisterStartupTask(new Runner());
             }
 
             public class Runner : FeatureStartupTask, IDisposable
             {
-                protected override Task OnStart(IBusContext context)
+                protected override Task OnStart(IBusSession session)
                 {
                     return Task.FromResult(0);
+                }
+
+                protected override Task OnStop(IBusSession session)
+                {
+                    return TaskEx.Completed;
                 }
 
                 public void Dispose()

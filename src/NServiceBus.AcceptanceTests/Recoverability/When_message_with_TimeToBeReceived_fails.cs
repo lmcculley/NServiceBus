@@ -14,7 +14,7 @@
         {
             var context = await Scenario.Define<Context>()
             .WithEndpoint<EndpointThatThrows>(b => b
-                .When(bus => bus.SendLocalAsync(new MessageThatFails()))
+                .When(bus => bus.SendLocal(new MessageThatFails()))
                 .DoNotFailOnErrorMessages())
             .WithEndpoint<EndpointThatHandlesErrorMessages>()
             .Done(c => c.MessageFailed && c.TTBRHasExpiredAndMessageIsStillInErrorQueue)
@@ -38,7 +38,7 @@
                 EndpointSetup<DefaultServer>(b =>
                 {
                     b.DisableFeature<Features.SecondLevelRetries>();
-                    b.SendFailedMessagesTo("errorqueueforacceptancetest");
+                    b.SendFailedMessagesTo("errorQueueForAcceptanceTest");
                 })
                     .WithConfig<TransportConfig>(c =>
                     {
@@ -69,7 +69,7 @@
             public EndpointThatHandlesErrorMessages()
             {
                 EndpointSetup<DefaultServer>()
-                    .CustomEndpointName("errorqueueforacceptancetest");
+                    .CustomEndpointName("errorQueueForAcceptanceTest");
             }
 
             class ErrorMessageHandler : IHandleMessages<MessageThatFails>
@@ -95,11 +95,11 @@
                     {
                         testContext.TTBRHasExpiredAndMessageIsStillInErrorQueue = true;
                         var timeElapsedSinceFirstHandlingOfErrorMessage = errorProcessingStarted - testContext.FirstTimeProcessedByErrorHandler.Value;
-                        Console.WriteLine("Error message not removed because of TTBR({0}) after {1}. Success.", ttbr, timeElapsedSinceFirstHandlingOfErrorMessage);
+                        Console.WriteLine("Error message not removed because of TTBR({0}) after {1}. Succeeded.", ttbr, timeElapsedSinceFirstHandlingOfErrorMessage);
                     }
                     else
                     {
-                        return context.HandleCurrentMessageLaterAsync();
+                        return context.HandleCurrentMessageLater();
                     }
 
                     return Task.FromResult(0); // ignore messages from previous test runs

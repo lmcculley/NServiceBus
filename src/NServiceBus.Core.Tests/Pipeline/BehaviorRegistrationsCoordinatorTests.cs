@@ -14,13 +14,13 @@ namespace NServiceBus.Core.Tests.Pipeline
     {
         StepRegistrationsCoordinator coordinator;
         List<RemoveStep> removals;
-        List<ReplaceBehavior> replacements;
+        List<ReplaceStep> replacements;
 
         [SetUp]
         public void Setup()
         {
             removals = new List<RemoveStep>();
-            replacements = new List<ReplaceBehavior>();
+            replacements = new List<ReplaceStep>();
 
             coordinator = new StepRegistrationsCoordinator(removals, replacements);
         }
@@ -34,7 +34,7 @@ namespace NServiceBus.Core.Tests.Pipeline
 
             removals.Add(new RemoveStep("1"));
 
-            var model = coordinator.BuildPipelineModelFor<IncomingContext>();
+            var model = coordinator.BuildPipelineModelFor<IRootContext>();
 
             Assert.AreEqual(2, model.Count());
         }
@@ -46,7 +46,7 @@ namespace NServiceBus.Core.Tests.Pipeline
             coordinator.Register("2", typeof(FakeBehavior), "2");
             coordinator.Register("3", typeof(FakeBehavior), "3");
 
-            var model =  coordinator.BuildPipelineModelFor<IncomingContext>().ToList();
+            var model =  coordinator.BuildPipelineModelFor<IRootContext>().ToList();
 
             Assert.AreEqual("1", model[0].StepId);
             Assert.AreEqual("2", model[1].StepId);
@@ -60,10 +60,10 @@ namespace NServiceBus.Core.Tests.Pipeline
             coordinator.Register("2", typeof(FakeBehavior), "2");
             coordinator.Register("3", typeof(FakeBehavior), "3");
 
-            replacements.Add(new ReplaceBehavior("1", typeof(ReplacedBehavior), "new"));
-            replacements.Add(new ReplaceBehavior("2", typeof(ReplacedBehavior)));
+            replacements.Add(new ReplaceStep("1", typeof(ReplacedBehavior), "new"));
+            replacements.Add(new ReplaceStep("2", typeof(ReplacedBehavior)));
 
-            var model = coordinator.BuildPipelineModelFor<IncomingContext>().ToList();
+            var model = coordinator.BuildPipelineModelFor<IRootContext>().ToList();
 
             Assert.AreEqual(typeof(ReplacedBehavior).FullName, model[0].BehaviorType.FullName);
             Assert.AreEqual("new", model[0].Description);
@@ -81,7 +81,7 @@ namespace NServiceBus.Core.Tests.Pipeline
             coordinator.Register(new MyCustomRegistration("2.5", "3", "2"));
             coordinator.Register(new MyCustomRegistration("3.5", null, "3"));
 
-            var model = coordinator.BuildPipelineModelFor<IncomingContext>().ToList();
+            var model = coordinator.BuildPipelineModelFor<IRootContext>().ToList();
 
             Assert.AreEqual("1", model[0].StepId);
             Assert.AreEqual("1.5", model[1].StepId);
@@ -101,7 +101,7 @@ namespace NServiceBus.Core.Tests.Pipeline
             coordinator.Register(new MyCustomRegistration("1.5", "2,3", null));
             coordinator.Register(new MyCustomRegistration("2.5", "3", null));
 
-            var model = coordinator.BuildPipelineModelFor<IncomingContext>().ToList();
+            var model = coordinator.BuildPipelineModelFor<IRootContext>().ToList();
 
             Assert.AreEqual("1", model[0].StepId);
             Assert.AreEqual("1.5", model[1].StepId);
@@ -121,7 +121,7 @@ namespace NServiceBus.Core.Tests.Pipeline
             coordinator.Register(new MyCustomRegistration("2.5", "3", "2,1"));
             coordinator.Register(new MyCustomRegistration("3.5", null, "1,2,3"));
 
-            var model = coordinator.BuildPipelineModelFor<IncomingContext>().ToList();
+            var model = coordinator.BuildPipelineModelFor<IRootContext>().ToList();
 
             Assert.AreEqual("1", model[0].StepId);
             Assert.AreEqual("1.5", model[1].StepId);
@@ -142,7 +142,7 @@ namespace NServiceBus.Core.Tests.Pipeline
             coordinator.Register(new MyCustomRegistration("1.6", "2", "1.5"));
             coordinator.Register(new MyCustomRegistration("1.1", "1.5", "1"));
 
-            var model = coordinator.BuildPipelineModelFor<IncomingContext>().ToList();
+            var model = coordinator.BuildPipelineModelFor<IRootContext>().ToList();
 
             Assert.AreEqual("1", model[0].StepId);
             Assert.AreEqual("1.1", model[1].StepId);
@@ -160,7 +160,7 @@ namespace NServiceBus.Core.Tests.Pipeline
             coordinator.Register(new MyCustomRegistration("x","connector",""));
 
 
-            Assert.Throws<Exception>(() => coordinator.BuildPipelineModelFor<IncomingContext>());
+            Assert.Throws<Exception>(() => coordinator.BuildPipelineModelFor<IRootContext>());
         }
 
         [Test]
@@ -171,9 +171,8 @@ namespace NServiceBus.Core.Tests.Pipeline
             coordinator.Register(new MyCustomRegistration("x", "", "connector"));
 
 
-            Assert.Throws<Exception>(() => coordinator.BuildPipelineModelFor<IncomingContext>());
+            Assert.Throws<Exception>(() => coordinator.BuildPipelineModelFor<IRootContext>());
         }
-
 
         class MyCustomRegistration : RegisterStep
         {
@@ -199,38 +198,41 @@ namespace NServiceBus.Core.Tests.Pipeline
                 }
             }
         }
-        class FakeBehavior: Behavior<IncomingContext>
+
+        class FakeBehavior: Behavior<IRootContext>
         {
-            public override Task Invoke(IncomingContext context, Func<Task> next)
+            public override Task Invoke(IRootContext context, Func<Task> next)
             {
                 throw new NotImplementedException();
             }
         }
 
 
-        class ReplacedBehavior : Behavior<IncomingContext>
+        class ReplacedBehavior : Behavior<IRootContext>
         {
-            public override Task Invoke(IncomingContext context, Func<Task> next)
+            public override Task Invoke(IRootContext context, Func<Task> next)
             {
                 throw new NotImplementedException();
             }
         }
 
-        class FakeStageConnector : StageConnector<IncomingContext,ChildContext>
+        class FakeStageConnector : StageConnector<IRootContext, IChildContext>
         {
-            public override Task Invoke(IncomingContext context, Func<ChildContext, Task> next)
+            public override Task Invoke(IRootContext context, Func<IChildContext, Task> next)
             {
                 throw new NotImplementedException();
             }
         }
 
-        class ChildContext : IncomingContext
+        interface IRootContext : IBehaviorContext { }
+
+        interface IChildContext : IIncomingContext { }
+
+        class ChildContext : IncomingContext, IChildContext
         {
-            public ChildContext() : base(null)
+            public ChildContext() : base("messageId", "replyToAddress", new Dictionary<string, string>(), null)
             {
             }
         }
-
-     
     }
 }

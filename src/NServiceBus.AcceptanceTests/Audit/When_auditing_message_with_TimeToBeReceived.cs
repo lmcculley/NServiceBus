@@ -13,7 +13,7 @@
         public async Task Should_not_honor_TimeToBeReceived_for_audit_message()
         {
             var context = await Scenario.Define<Context>()
-            .WithEndpoint<EndpointWithAuditOn>(b => b.When(bus => bus.SendLocalAsync(new MessageToBeAudited())))
+            .WithEndpoint<EndpointWithAuditOn>(b => b.When(bus => bus.SendLocal(new MessageToBeAudited())))
             .WithEndpoint<EndpointThatHandlesAuditMessages>()
             .Done(c => c.IsMessageHandlingComplete && c.TTBRHasExpiredAndMessageIsStillInAuditQueue)
             .Run();
@@ -85,11 +85,11 @@
                     {
                         textContext.TTBRHasExpiredAndMessageIsStillInAuditQueue = true;
                         var timeElapsedSinceFirstHandlingOfAuditMessage = auditProcessingStarted - textContext.FirstTimeProcessedByAudit.Value;
-                        Console.WriteLine("Audit message not removed because of TTBR({0}) after {1}. Success.", ttbr, timeElapsedSinceFirstHandlingOfAuditMessage);
+                        Console.WriteLine("Audit message not removed because of TTBR({0}) after {1}. Succeeded.", ttbr, timeElapsedSinceFirstHandlingOfAuditMessage);
                     }
                     else
                     {
-                        return context.HandleCurrentMessageLaterAsync();
+                        return context.HandleCurrentMessageLater();
                     }
 
                     return Task.FromResult(0);

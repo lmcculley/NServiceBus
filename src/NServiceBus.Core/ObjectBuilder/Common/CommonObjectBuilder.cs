@@ -1,10 +1,11 @@
-namespace NServiceBus.ObjectBuilder.Common
+namespace NServiceBus
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Linq.Expressions;
-    using Utils.Reflection;
+    using NServiceBus.ObjectBuilder;
+    using NServiceBus.ObjectBuilder.Common;
 
     /// <summary>
     /// Implementation of IBuilder, serving as a facade that container specific implementations

@@ -39,7 +39,7 @@
                 public ReadOnlySettings Settings { get; set; }
 
 
-                public Task StartAsync(IBusContext context)
+                public Task Start(IBusSession session)
                 {
                     Context.SettingIsAvailable = Settings != null;
 
@@ -47,7 +47,7 @@
                     return Task.FromResult(0);
                 }
 
-                public Task StopAsync(IBusContext context)
+                public Task Stop(IBusSession session)
                 {
                     return Task.FromResult(0);
                 }

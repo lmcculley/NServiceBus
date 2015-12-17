@@ -7,23 +7,22 @@
     using NServiceBus.Logging;
     using NServiceBus.Pipeline;
     using NServiceBus.Routing;
-    using NServiceBus.Routing.MessageDrivenSubscriptions;
     using NServiceBus.Transports;
     using NServiceBus.Unicast.Queuing;
     using NServiceBus.Unicast.Transport;
 
-    class MessageDrivenSubscribeTerminator : PipelineTerminator<SubscribeContext>
+    class MessageDrivenSubscribeTerminator : PipelineTerminator<ISubscribeContext>
     {
-        public MessageDrivenSubscribeTerminator(SubscriptionRouter subscriptionRouter, string subscriberAddress, EndpointName subscriberEndpointName, IDispatchMessages dispatcher, bool legacyMode)
+        public MessageDrivenSubscribeTerminator(SubscriptionRouter subscriptionRouter, string subscriberAddress, Endpoint subscriberEndpoint, IDispatchMessages dispatcher, bool legacyMode)
         {
             this.subscriptionRouter = subscriptionRouter;
             this.subscriberAddress = subscriberAddress;
-            this.subscriberEndpointName = subscriberEndpointName;
+            this.subscriberEndpoint = subscriberEndpoint;
             this.dispatcher = dispatcher;
             this.legacyMode = legacyMode;
         }
 
-        protected override Task Terminate(SubscribeContext context)
+        protected override Task Terminate(ISubscribeContext context)
         {
             var eventType = context.EventType;
 
@@ -33,7 +32,7 @@
             var subscribeTasks = new List<Task>();
             foreach (var publisherAddress in publisherAddresses)
             {
-                Logger.Debug("Subscribing to " + eventType.AssemblyQualifiedName + " at publisher queue " + publisherAddress);
+                Logger.Debug($"Subscribing to {eventType.AssemblyQualifiedName} at publisher queue {publisherAddress}");
 
                 var subscriptionMessage = ControlMessageFactory.Create(MessageIntentEnum.Subscribe);
 
@@ -46,11 +45,11 @@
                 else
                 {
                     subscriptionMessage.Headers[Headers.SubscriberTransportAddress] = subscriberAddress;
-                    subscriptionMessage.Headers[Headers.SubscriberEndpoint] = subscriberEndpointName.ToString();
+                    subscriptionMessage.Headers[Headers.SubscriberEndpoint] = subscriberEndpoint.ToString();
                 }
                 var address = publisherAddress;
 
-                subscribeTasks.Add(SendSubscribeMessageWithRetries(address, subscriptionMessage, eventType.AssemblyQualifiedName, context));
+                subscribeTasks.Add(SendSubscribeMessageWithRetries(address, subscriptionMessage, eventType.AssemblyQualifiedName, context.Extensions));
             }
 
             return Task.WhenAll(subscribeTasks.ToArray());
@@ -94,9 +93,9 @@
 
         SubscriptionRouter subscriptionRouter;
         string subscriberAddress;
-        readonly EndpointName subscriberEndpointName;
+        Endpoint subscriberEndpoint;
         IDispatchMessages dispatcher;
-        readonly bool legacyMode;
+        bool legacyMode;
 
         static ILog Logger = LogManager.GetLogger<MessageDrivenUnsubscribeTerminator>();
     }

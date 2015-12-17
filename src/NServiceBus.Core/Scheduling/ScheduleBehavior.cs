@@ -4,9 +4,8 @@ namespace NServiceBus
     using System.Threading.Tasks;
     using NServiceBus.Pipeline;
     using NServiceBus.Pipeline.OutgoingPipeline;
-    using NServiceBus.Scheduling;
 
-    class ScheduleBehavior : Behavior<OutgoingLogicalMessageContext>
+    class ScheduleBehavior : Behavior<IOutgoingLogicalMessageContext>
     {
         DefaultScheduler scheduler;
 
@@ -20,10 +19,10 @@ namespace NServiceBus
             public TaskDefinition TaskDefinition { get; set; }
         }
 
-        public override Task Invoke(OutgoingLogicalMessageContext context, Func<Task> next)
+        public override Task Invoke(IOutgoingLogicalMessageContext context, Func<Task> next)
         {
             State state;
-            if (context.TryGet(out state))
+            if (context.Extensions.TryGet(out state))
             {
                 scheduler.Schedule(state.TaskDefinition);
             }

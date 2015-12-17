@@ -3,7 +3,6 @@
     using NServiceBus.Extensibility;
     using NServiceBus.OutgoingPipeline;
     using NServiceBus.Routing;
-    using NServiceBus.Routing.MessagingBestPractices;
 
     /// <summary>
     /// Provides options for disabling the best practice enforcement.
@@ -21,41 +20,41 @@
         /// <summary>
         /// Turns off the best practice enforcement for the given context.
         /// </summary>
-        public static void DoNotEnforceBestPractices(this OutgoingReplyContext context)
+        public static void DoNotEnforceBestPractices(this IOutgoingReplyContext context)
         {
-            context.SetDoNotEnforceBestPractices();
+            context.Extensions.SetDoNotEnforceBestPractices();
         }
 
         /// <summary>
         /// Turns off the best practice enforcement for the given context.
         /// </summary>
-        public static void DoNotEnforceBestPractices(this OutgoingSendContext context)
+        public static void DoNotEnforceBestPractices(this IOutgoingSendContext context)
         {
-            context.SetDoNotEnforceBestPractices();
+            context.Extensions.SetDoNotEnforceBestPractices();
         }
 
         /// <summary>
         /// Turns off the best practice enforcement for the given context.
         /// </summary>
-        public static void DoNotEnforceBestPractices(this SubscribeContext context)
+        public static void DoNotEnforceBestPractices(this ISubscribeContext context)
         {
-            context.SetDoNotEnforceBestPractices();
+            context.Extensions.SetDoNotEnforceBestPractices();
         }
 
         /// <summary>
         /// Turns off the best practice enforcement for the given context.
         /// </summary>
-        public static void DoNotEnforceBestPractices(this OutgoingPublishContext context)
+        public static void DoNotEnforceBestPractices(this IOutgoingPublishContext context)
         {
-            context.SetDoNotEnforceBestPractices();
+            context.Extensions.SetDoNotEnforceBestPractices();
         }
 
         /// <summary>
         /// Turns off the best practice enforcement for the given context.
         /// </summary>
-        public static void DoNotEnforceBestPractices(this UnsubscribeContext context)
+        public static void DoNotEnforceBestPractices(this IUnsubscribeContext context)
         {
-            context.SetDoNotEnforceBestPractices();
+            context.Extensions.SetDoNotEnforceBestPractices();
         }
 
         static void SetDoNotEnforceBestPractices(this ContextBag context)

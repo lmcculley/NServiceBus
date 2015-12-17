@@ -31,7 +31,7 @@
 
             public IndividualizedEndpoint()
             {
-                EndpointSetup<DefaultServer>(c => c.ScaleOut().UniqueQueuePerEndpointInstance(discriminator));
+                EndpointSetup<DefaultServer>(c => c.ScaleOut().InstanceDiscriminator(discriminator));
             }
 
             class AddressSpy : IWantToRunWhenBusStartsAndStops
@@ -40,13 +40,13 @@
 
                 public ReadOnlySettings Settings { get; set; }
 
-                public Task StartAsync(IBusContext context)
+                public Task Start(IBusSession session)
                 {
                     Context.Address = Settings.RootLogicalAddress().ToString();
                     return Task.FromResult(0);
                 }
 
-                public Task StopAsync(IBusContext context)
+                public Task Stop(IBusSession session)
                 {
                     return Task.FromResult(0);
                 }

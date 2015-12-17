@@ -4,6 +4,7 @@ namespace NServiceBus
     using System.Collections.Generic;
     using System.Linq;
     using Config.ConfigurationSource;
+    using NServiceBus.Routing;
     using Settings;
 
     /// <summary>
@@ -16,7 +17,7 @@ namespace NServiceBus
         /// </summary>
         public static T GetConfigSection<T>(this ReadOnlySettings settings) where T : class, new()
         {
-            Guard.AgainstNull("settings", settings);
+            Guard.AgainstNull(nameof(settings), settings);
             var typesToScan = settings.GetAvailableTypes();
             var configurationSource = settings.Get<IConfigurationSource>();
 
@@ -49,26 +50,26 @@ namespace NServiceBus
         /// </summary>
         public static IList<Type> GetAvailableTypes(this ReadOnlySettings settings)
         {
-            Guard.AgainstNull("settings", settings);
+            Guard.AgainstNull(nameof(settings), settings);
             return settings.Get<IList<Type>>("TypesToScan");
         }
 
         /// <summary>
         /// Returns the name of this endpoint.
         /// </summary>
-        public static EndpointName EndpointName(this ReadOnlySettings settings)
+        public static Endpoint EndpointName(this ReadOnlySettings settings)
         {
-            Guard.AgainstNull("settings", settings);
-            return settings.Get<EndpointName>();
+            Guard.AgainstNull(nameof(settings), settings);
+            return settings.Get<Endpoint>();
         }
         
         /// <summary>
         /// Returns the name of this instance of the endpoint.
         /// </summary>
-        public static EndpointInstanceName EndpointInstanceName(this ReadOnlySettings settings)
+        public static EndpointInstance EndpointInstanceName(this ReadOnlySettings settings)
         {
-            Guard.AgainstNull("settings", settings);
-            return settings.Get<EndpointInstanceName>();
+            Guard.AgainstNull(nameof(settings), settings);
+            return settings.Get<EndpointInstance>();
         }
 
         /// <summary>
@@ -76,16 +77,16 @@ namespace NServiceBus
         /// </summary>
         public static string LocalAddress(this ReadOnlySettings settings)
         {
-            Guard.AgainstNull("settings", settings);
+            Guard.AgainstNull(nameof(settings), settings);
             return settings.Get<string>("NServiceBus.LocalAddress");
         }
         
         /// <summary>
-        /// Returns the root logical address of this nedpoint.
+        /// Returns the root logical address of this endpoint.
         /// </summary>
         public static LogicalAddress RootLogicalAddress(this ReadOnlySettings settings)
         {
-            Guard.AgainstNull("settings", settings);
+            Guard.AgainstNull(nameof(settings), settings);
             return settings.Get<LogicalAddress>();
         }
 

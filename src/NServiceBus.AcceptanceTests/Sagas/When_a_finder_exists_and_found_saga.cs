@@ -5,6 +5,7 @@
     using NServiceBus.AcceptanceTests.EndpointTemplates;
     using NServiceBus.Extensibility;
     using NServiceBus.Features;
+    using NServiceBus.Persistence;
     using NServiceBus.Sagas;
     using NUnit.Framework;
 
@@ -15,7 +16,7 @@
         public async Task Should_find_saga_and_not_correlate()
         {
             var context = await Scenario.Define<Context>()
-                .WithEndpoint<SagaEndpoint>(b => b.When(bus => bus.SendLocalAsync(new StartSagaMessage())))
+                .WithEndpoint<SagaEndpoint>(b => b.When(bus => bus.SendLocal(new StartSagaMessage())))
                 .Done(c => c.Completed)
                 .Run();
 
@@ -40,7 +41,7 @@
                 // ReSharper disable once MemberCanBePrivate.Global
                 public Context Context { get; set; }
 
-                public Task<TestSaga08.SagaData08> FindBy(SomeOtherMessage message, ReadOnlyContextBag context)
+                public Task<TestSaga08.SagaData08> FindBy(SomeOtherMessage message, SynchronizedStorageSession storageSession, ReadOnlyContextBag context)
                 {
                     Context.FinderUsed = true;
                     return Task.FromResult(new TestSaga08.SagaData08
@@ -58,7 +59,7 @@
 
                 public Task Handle(StartSagaMessage message, IMessageHandlerContext context)
                 {
-                    return context.SendLocalAsync(new SomeOtherMessage());
+                    return context.SendLocal(new SomeOtherMessage());
                 }
 
                 protected override void ConfigureHowToFindSaga(SagaPropertyMapper<SagaData08> mapper)

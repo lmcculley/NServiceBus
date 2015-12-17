@@ -2,7 +2,6 @@ namespace NServiceBus
 {
     using System;
     using System.Threading.Tasks;
-    using DelayedDelivery.TimeoutManager;
     using Pipeline;
     using Routing;
     using Timeout.Core;
@@ -18,7 +17,7 @@ namespace NServiceBus
             this.owningTimeoutManager = owningTimeoutManager;
         }
 
-        protected override async Task Terminate(PhysicalMessageProcessingContext context)
+        protected override async Task Terminate(IIncomingPhysicalMessageContext context)
         {
             var message = context.Message;
             var sagaId = Guid.Empty;
@@ -34,7 +33,7 @@ namespace NServiceBus
                 if (sagaId == Guid.Empty)
                     throw new InvalidOperationException("Invalid saga id specified, clear timeouts is only supported for saga instances");
 
-                await persister.RemoveTimeoutBy(sagaId, context).ConfigureAwait(false);
+                await persister.RemoveTimeoutBy(sagaId, context.Extensions).ConfigureAwait(false);
             }
             else
             {
@@ -67,11 +66,11 @@ namespace NServiceBus
                     var sendOptions = new DispatchOptions(new UnicastAddressTag(data.Destination), DispatchConsistency.Default);
                     var outgoingMessage = new OutgoingMessage(message.MessageId, data.Headers, data.State);
 
-                    await dispatcher.Dispatch(new[] { new TransportOperation(outgoingMessage, sendOptions) }, context).ConfigureAwait(false);
+                    await dispatcher.Dispatch(new[] { new TransportOperation(outgoingMessage, sendOptions) }, context.Extensions).ConfigureAwait(false);
                     return;
                 }
 
-                await persister.Add(data, context).ConfigureAwait(false);
+                await persister.Add(data, context.Extensions).ConfigureAwait(false);
 
                 poller.NewTimeoutRegistered(data.Time);
             }

@@ -4,9 +4,9 @@
     using System.Threading.Tasks;
     using Pipeline;
 
-    class ProcessingStatisticsBehavior : Behavior<PhysicalMessageProcessingContext>
+    class ProcessingStatisticsBehavior : Behavior<IIncomingPhysicalMessageContext>
     {
-        public override async Task Invoke(PhysicalMessageProcessingContext context, Func<Task> next)
+        public override async Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
         {
             var state = new State();
 
@@ -20,7 +20,7 @@
 
             state.ProcessingStarted = DateTime.UtcNow;
 
-            context.Set(state);
+            context.Extensions.Set(state);
             try
             {
                 await next().ConfigureAwait(false);

@@ -4,6 +4,7 @@
     using System.Threading.Tasks;
     using NServiceBus.AcceptanceTesting;
     using NServiceBus.AcceptanceTests.EndpointTemplates;
+    using NServiceBus.Routing;
     using NUnit.Framework;
 
     public class When_distributing_an_event : NServiceBusAcceptanceTest
@@ -12,15 +13,15 @@
         public async Task Should_round_robin()
         {
             var context = await Scenario.Define<Context>()
-                .WithEndpoint<Publisher>(b => b.When(c => c.SubscriberA_1Subscribed && c.SubscriberA_2Subscribed && c.SubscriberB_1Subscribed && c.SubscriberB_2Subscribed, async (bus, c) =>
+                .WithEndpoint<Publisher>(b => b.When(c => c.SubscribersCounter == 4, async (bus, c) =>
                 {
-                    await bus.PublishAsync(new MyEvent());
+                    await bus.Publish(new MyEvent());
                 }))
                 .WithEndpoint<SubscriberA_1>(b => b.When((bus, c) =>
                 {
                     if (c.HasNativePubSubSupport)
                     {
-                        c.SubscriberA_1Subscribed = true;
+                        c.IncrementSubscribersCounter();
                     }
                     return Task.FromResult(0);
                 }))
@@ -28,7 +29,7 @@
                 {
                     if (c.HasNativePubSubSupport)
                     {
-                        c.SubscriberA_2Subscribed = true;
+                        c.IncrementSubscribersCounter();
                     }
                     return Task.FromResult(0);
                 }))
@@ -36,7 +37,7 @@
                 {
                     if (c.HasNativePubSubSupport)
                     {
-                        c.SubscriberB_1Subscribed = true;
+                        c.IncrementSubscribersCounter();
                     }
                     return Task.FromResult(0);
                 })).
@@ -44,7 +45,7 @@
                 {
                     if (c.HasNativePubSubSupport)
                     {
-                        c.SubscriberB_2Subscribed = true;
+                        c.IncrementSubscribersCounter();
                     }
                     return Task.FromResult(0);
                 }))
@@ -57,17 +58,15 @@
 
         public class Context : ScenarioContext
         {
+            int subscribersCounter;
             int subscriberACounter;
             int subscriberBCounter;
+
+            public int SubscribersCounter => subscribersCounter;
 
             public int SubscriberACounter => subscriberACounter;
 
             public int SubscriberBCounter => subscriberBCounter;
-
-            public bool SubscriberA_1Subscribed { get; set; }
-            public bool SubscriberA_2Subscribed { get; set; }
-            public bool SubscriberB_1Subscribed { get; set; }
-            public bool SubscriberB_2Subscribed { get; set; }
 
             public void IncrementSubscriberACounter()
             {
@@ -77,6 +76,11 @@
             public void IncrementSubscriberBCounter()
             {
                 Interlocked.Increment(ref subscriberBCounter);
+            }
+
+            public void IncrementSubscribersCounter()
+            {
+                Interlocked.Increment(ref subscribersCounter);
             }
         }
 
@@ -88,22 +92,7 @@
                 {
                     c.OnEndpointSubscribed<Context>((s, context) =>
                     {
-                        if (s.SubscriberReturnAddress.Contains("SubscriberA-1"))
-                        {
-                            context.SubscriberA_1Subscribed = true;
-                        }
-                        if (s.SubscriberReturnAddress.Contains("SubscriberA-2"))
-                        {
-                            context.SubscriberA_2Subscribed = true;
-                        }
-                        if (s.SubscriberReturnAddress.Contains("SubscriberB-1"))
-                        {
-                            context.SubscriberB_1Subscribed = true;
-                        }
-                        if (s.SubscriberReturnAddress.Contains("SubscriberB-2"))
-                        {
-                            context.SubscriberB_2Subscribed = true;
-                        }
+                        context.IncrementSubscribersCounter();
                     });
                 });
             }
@@ -116,11 +105,11 @@
                 EndpointSetup<DefaultServer>(c =>
                 {
                     c.EndpointName("DistributingAnEvent.SubscriberA");
-                    c.ScaleOut().UniqueQueuePerEndpointInstance("1");
+                    c.ScaleOut().InstanceDiscriminator("1");
 
-                    var publisher = new EndpointName("DistributingAnEvent.Publisher");
+                    var publisher = new Endpoint("DistributingAnEvent.Publisher");
                     c.Pubishers().AddStatic(publisher, typeof(MyEvent));
-                    c.Routing().EndpointInstances.AddStatic(publisher, new EndpointInstanceName(publisher, null, null));
+                    c.Routing().EndpointInstances.AddStatic(publisher, new EndpointInstance(publisher, null, null));
                 });
             }
 
@@ -143,11 +132,11 @@
                 EndpointSetup<DefaultServer>(c =>
                 {
                     c.EndpointName("DistributingAnEvent.SubscriberA");
-                    c.ScaleOut().UniqueQueuePerEndpointInstance("2");
+                    c.ScaleOut().InstanceDiscriminator("2");
                     
-                    var publisher = new EndpointName("DistributingAnEvent.Publisher");
+                    var publisher = new Endpoint("DistributingAnEvent.Publisher");
                     c.Pubishers().AddStatic(publisher, typeof(MyEvent));
-                    c.Routing().EndpointInstances.AddStatic(publisher, new EndpointInstanceName(publisher, null, null));
+                    c.Routing().EndpointInstances.AddStatic(publisher, new EndpointInstance(publisher, null, null));
                 });
             }
 
@@ -170,11 +159,11 @@
                 EndpointSetup<DefaultServer>(c =>
                 {
                     c.EndpointName("DistributingAnEvent.SubscriberB");
-                    c.ScaleOut().UniqueQueuePerEndpointInstance("1");
+                    c.ScaleOut().InstanceDiscriminator("1");
                     
-                    var publisher = new EndpointName("DistributingAnEvent.Publisher");
+                    var publisher = new Endpoint("DistributingAnEvent.Publisher");
                     c.Pubishers().AddStatic(publisher, typeof(MyEvent));
-                    c.Routing().EndpointInstances.AddStatic(publisher, new EndpointInstanceName(publisher, null, null));
+                    c.Routing().EndpointInstances.AddStatic(publisher, new EndpointInstance(publisher, null, null));
                 });
             }
 
@@ -196,11 +185,11 @@
                 EndpointSetup<DefaultServer>(c =>
                 {
                     c.EndpointName("DistributingAnEvent.SubscriberB");
-                    c.ScaleOut().UniqueQueuePerEndpointInstance("2");
+                    c.ScaleOut().InstanceDiscriminator("2");
                     
-                    var publisher = new EndpointName("DistributingAnEvent.Publisher");
+                    var publisher = new Endpoint("DistributingAnEvent.Publisher");
                     c.Pubishers().AddStatic(publisher, typeof(MyEvent));
-                    c.Routing().EndpointInstances.AddStatic(publisher, new EndpointInstanceName(publisher, null, null));
+                    c.Routing().EndpointInstances.AddStatic(publisher, new EndpointInstance(publisher, null, null));
                 });
             }
 

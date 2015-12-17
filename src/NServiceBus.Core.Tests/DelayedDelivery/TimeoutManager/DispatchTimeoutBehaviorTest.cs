@@ -6,7 +6,6 @@
     using System.Linq;
     using System.Threading.Tasks;
     using NServiceBus.Extensibility;
-    using NServiceBus.InMemory.TimeoutPersister;
     using NServiceBus.Timeout.Core;
     using NServiceBus.Transports;
     using NUnit.Framework;
@@ -18,14 +17,26 @@
         {
             var messageDispatcher = new FakeMessageDispatcher();
             var timeoutPersister = new InMemoryTimeoutPersister();
-            var testee = new DispatchTimeoutBehavior(messageDispatcher, timeoutPersister, TransactionSupport.Distributed);
+            var behavior = new DispatchTimeoutBehavior(messageDispatcher, timeoutPersister, TransportTransactionMode.TransactionScope);
             var timeoutData = CreateTimeout();
             await timeoutPersister.Add(timeoutData, null);
 
-            await testee.Invoke(CreateContext(timeoutData.Id), context => TaskEx.Completed);
+            await behavior.Invoke(CreateContext(timeoutData.Id), context => TaskEx.Completed);
 
             var result = await timeoutPersister.Peek(timeoutData.Id, null);
             Assert.Null(result);
+        }
+
+        [Test]
+        public async Task Invoke_when_timeout_not_in_storage_should_process_successfully()
+        {
+            var messageDispatcher = new FakeMessageDispatcher();
+            var timeoutPersister = new InMemoryTimeoutPersister();
+            var behavior = new DispatchTimeoutBehavior(messageDispatcher, timeoutPersister, TransportTransactionMode.TransactionScope);
+
+            await behavior.Invoke(CreateContext(Guid.NewGuid().ToString()), context => TaskEx.Completed);
+
+            Assert.AreEqual(0, messageDispatcher.OutgoingMessages.Count());
         }
 
         [Test]
@@ -33,14 +44,29 @@
         {
             var messageDispatcher = new FailingMessageDispatcher();
             var timeoutPersister = new InMemoryTimeoutPersister();
-            var testee = new DispatchTimeoutBehavior(messageDispatcher, timeoutPersister, TransactionSupport.Distributed);
+            var behavior = new DispatchTimeoutBehavior(messageDispatcher, timeoutPersister, TransportTransactionMode.TransactionScope);
             var timeoutData = CreateTimeout();
             await timeoutPersister.Add(timeoutData, null);
 
-            Assert.Throws<Exception>(async () => await testee.Invoke(CreateContext(timeoutData.Id), context => TaskEx.Completed));
+            Assert.Throws<Exception>(async () => await behavior.Invoke(CreateContext(timeoutData.Id), context => TaskEx.Completed));
 
             var result = await timeoutPersister.Peek(timeoutData.Id, null);
             Assert.NotNull(result);
+        }
+
+        [Test]
+        public void Invoke_when_removing_timeout_fails_should_throw_exception()
+        {
+            var messageDispatcher = new FakeMessageDispatcher();
+            var timeoutPersister = new FakeTimeoutStorage
+            {
+                OnPeek = (id, bag) => CreateTimeout(),
+                OnTryRemove = (id, bag) => false // simulates a concurrent delete
+            };
+
+            var behavior = new DispatchTimeoutBehavior(messageDispatcher, timeoutPersister, TransportTransactionMode.TransactionScope);
+
+            Assert.Throws<Exception>(async () => await behavior.Invoke(CreateContext(Guid.NewGuid().ToString()), context => TaskEx.Completed));
         }
 
         [Test]
@@ -48,28 +74,28 @@
         {
             var messageDispatcher = new FakeMessageDispatcher();
             var timeoutPersister = new InMemoryTimeoutPersister();
-            var testee = new DispatchTimeoutBehavior(messageDispatcher, timeoutPersister, TransactionSupport.Distributed);
+            var behavior = new DispatchTimeoutBehavior(messageDispatcher, timeoutPersister, TransportTransactionMode.TransactionScope);
             var timeoutData = CreateTimeout();
             await timeoutPersister.Add(timeoutData, null);
 
-            await testee.Invoke(CreateContext(timeoutData.Id), context => TaskEx.Completed);
+            await behavior.Invoke(CreateContext(timeoutData.Id), context => TaskEx.Completed);
 
             var transportOperation = messageDispatcher.OutgoingMessages.Single();
             Assert.AreEqual(DispatchConsistency.Default, transportOperation.DispatchOptions.RequiredDispatchConsistency);
         }
 
-        [TestCase(TransactionSupport.MultiQueue)]
-        [TestCase(TransactionSupport.SingleQueue)]
-        [TestCase(TransactionSupport.None)]
-        public async Task Invoke_when_not_using_dtc_transport_should_not_enlist_dispatch_in_transaction(TransactionSupport nonDtcTxSettings)
+        [TestCase(TransportTransactionMode.SendsAtomicWithReceive)]
+        [TestCase(TransportTransactionMode.ReceiveOnly)]
+        [TestCase(TransportTransactionMode.None)]
+        public async Task Invoke_when_not_using_dtc_transport_should_not_enlist_dispatch_in_transaction(TransportTransactionMode nonDtcTxSettings)
         {
             var messageDispatcher = new FakeMessageDispatcher();
             var timeoutPersister = new InMemoryTimeoutPersister();
-            var testee = new DispatchTimeoutBehavior(messageDispatcher, timeoutPersister, nonDtcTxSettings);
+            var behavior = new DispatchTimeoutBehavior(messageDispatcher, timeoutPersister, nonDtcTxSettings);
             var timeoutData = CreateTimeout();
             await timeoutPersister.Add(timeoutData, null);
 
-            await testee.Invoke(CreateContext(timeoutData.Id), context => TaskEx.Completed);
+            await behavior.Invoke(CreateContext(timeoutData.Id), context => TaskEx.Completed);
 
             var transportOperation = messageDispatcher.OutgoingMessages.Single();
             Assert.AreEqual(DispatchConsistency.Isolated, transportOperation.DispatchOptions.RequiredDispatchConsistency);
@@ -84,7 +110,7 @@
             };
         }
 
-        static PhysicalMessageProcessingContext CreateContext(string timeoutId)
+        static IIncomingPhysicalMessageContext CreateContext(string timeoutId)
         {
             var messageId = Guid.NewGuid().ToString("D");
             var headers = new Dictionary<string, string>
@@ -92,13 +118,13 @@
                 {"Timeout.Id", timeoutId}
             };
 
-            return new PhysicalMessageProcessingContext(
+            return new IncomingPhysicalMessageContext(
                 new IncomingMessage(messageId, headers, new MemoryStream()), null);
         }
 
         class FakeMessageDispatcher : IDispatchMessages
         {
-            public IEnumerable<TransportOperation> OutgoingMessages { get; private set; }
+            public IEnumerable<TransportOperation> OutgoingMessages { get; private set; } = Enumerable.Empty<TransportOperation>();
 
             public Task Dispatch(IEnumerable<TransportOperation> outgoingMessages, ContextBag context)
             {
@@ -113,6 +139,32 @@
             {
                 throw new Exception("simulated exception");
             }
+        }
+
+        class FakeTimeoutStorage : IPersistTimeouts
+        {
+            public Task Add(TimeoutData timeout, ContextBag context)
+            {
+                return TaskEx.Completed;
+            }
+
+            public Task<bool> TryRemove(string timeoutId, ContextBag context)
+            {
+                return Task.FromResult(OnTryRemove(timeoutId, context));
+            }
+
+            public Task<TimeoutData> Peek(string timeoutId, ContextBag context)
+            {
+                return Task.FromResult(OnPeek(timeoutId, context));
+            }
+
+            public Task RemoveTimeoutBy(Guid sagaId, ContextBag context)
+            {
+                return TaskEx.Completed;
+            }
+
+            public Func<string, ContextBag, bool> OnTryRemove { get; set; } = (id, bag) => true;
+            public Func<string, ContextBag, TimeoutData> OnPeek { get; set; } = (id, bag) => null;
         }
     }
 }

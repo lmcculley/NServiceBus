@@ -1,7 +1,6 @@
 ﻿namespace NServiceBus.AcceptanceTests.Recoverability.Retries
 {
     using System;
-    using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
     using NServiceBus.AcceptanceTesting;
@@ -89,32 +88,27 @@
 
             public BusNotifications Notifications { get; set; }
 
-            public Task StartAsync(IBusContext context)
+            public Task Start(IBusSession session)
             {
-                unsubscribeStreams.Add(Notifications.Errors.MessageSentToErrorQueue.Subscribe(message =>
+                Notifications.Errors.MessageSentToErrorQueue += (sender, message) =>
                 {
                     Context.MessageSentToErrorException = message.Exception;
                     Context.MessageSentToError = true;
-                }));
-                unsubscribeStreams.Add(Notifications.Errors.MessageHasFailedAFirstLevelRetryAttempt.Subscribe(message => Context.TotalNumberOfFLRTimesInvoked++));
-                unsubscribeStreams.Add(Notifications.Errors.MessageHasBeenSentToSecondLevelRetries.Subscribe(message => Context.NumberOfSLRRetriesPerformed++));
+                };
 
-                return context.SendLocalAsync(new MessageToBeRetried
+                Notifications.Errors.MessageHasFailedAFirstLevelRetryAttempt += (sender, retry) => Context.TotalNumberOfFLRTimesInvoked++;
+                Notifications.Errors.MessageHasBeenSentToSecondLevelRetries += (sender, retry) => Context.NumberOfSLRRetriesPerformed++;
+
+                return session.SendLocal(new MessageToBeRetried
                 {
                     Id = Context.Id
                 });
             }
 
-            public Task StopAsync(IBusContext context)
+            public Task Stop(IBusSession session)
             {
-                foreach (var unsubscribeStream in unsubscribeStreams)
-                {
-                    unsubscribeStream.Dispose();
-                }
                 return Task.FromResult(0);
             }
-
-            List<IDisposable> unsubscribeStreams = new List<IDisposable>();
         }
     }
 }

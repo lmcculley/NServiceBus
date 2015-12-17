@@ -15,7 +15,7 @@ namespace NServiceBus
         /// <param name="config">The <see cref="BusConfiguration"/> instance to apply the settings to.</param>
         public static void EnableDurableMessages(this BusConfiguration config)
         {
-            Guard.AgainstNull("config", config);
+            Guard.AgainstNull(nameof(config), config);
             config.Settings.Set("Endpoint.DurableMessages", true);
         }
 
@@ -25,7 +25,7 @@ namespace NServiceBus
         /// <param name="config">The <see cref="BusConfiguration"/> instance to apply the settings to.</param>
         public static void DisableDurableMessages(this BusConfiguration config)
         {
-            Guard.AgainstNull("config", config);
+            Guard.AgainstNull(nameof(config), config);
             config.Settings.Set("Endpoint.DurableMessages", false);
         }
 
@@ -46,7 +46,10 @@ namespace NServiceBus
         /// <summary>
         /// Returns whether durable messages are on or off.
         /// </summary>
-        [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", ReplacementTypeOrMember = "DurableMessagesEnabled")]
+        [ObsoleteEx(
+            TreatAsErrorFromVersion = "6", 
+            RemoveInVersion = "7", 
+            ReplacementTypeOrMember = "DurableMessagesEnabled")]
         public static bool DurableMessagesEnabled(this Configure config)
         {
             throw new NotImplementedException();

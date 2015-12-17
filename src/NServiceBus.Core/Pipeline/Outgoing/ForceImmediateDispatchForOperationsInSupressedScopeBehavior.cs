@@ -8,16 +8,16 @@ namespace NServiceBus
     using TransportDispatch;
 
     [ObsoleteEx(RemoveInVersion = "7")]
-    class ForceImmediateDispatchForOperationsInSupressedScopeBehavior : Behavior<RoutingContext>
+    class ForceImmediateDispatchForOperationsInSuppressedScopeBehavior : Behavior<IRoutingContext>
     {
-        public override Task Invoke(RoutingContext context, Func<Task> next)
+        public override Task Invoke(IRoutingContext context, Func<Task> next)
         {
-            var state = context.GetOrCreate<InvokeHandlerTerminator.State>();
+            var state = context.Extensions.GetOrCreate<InvokeHandlerTerminator.State>();
 
             //if there is no scope here the user must have suppressed it
             if (state.ScopeWasPresent && Transaction.Current == null)
             {
-                var dispatchState = context.GetOrCreate<RoutingToDispatchConnector.State>();
+                var dispatchState = context.Extensions.GetOrCreate<RoutingToDispatchConnector.State>();
 
                 if (!dispatchState.ImmediateDispatch)
                 {
@@ -38,9 +38,9 @@ var options = new Send|Publish|ReplyOptions();
 
 options.RequireImmediateDispatch();
 
-bus.Send|Publish|ReplyAsync(new MyMessage(), options)
+bus.Send|Publish|Reply(new MyMessage(), options)
 ";
 
-        static ILog Logger = LogManager.GetLogger(typeof(ForceImmediateDispatchForOperationsInSupressedScopeBehavior));
+        static ILog Logger = LogManager.GetLogger<ForceImmediateDispatchForOperationsInSuppressedScopeBehavior>();
     }
 }

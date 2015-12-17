@@ -5,6 +5,7 @@
     using System.ServiceProcess;
     using System.Threading.Tasks;
     using Logging;
+    using NServiceBus.ConsistencyGuarantees;
     using Persistence;
     using Transports;
 
@@ -17,7 +18,7 @@
         {
             Defaults(s => s.SetDefault(InMemoryOutboxPersistence.TimeToKeepDeduplicationEntries, TimeSpan.FromDays(5)));
 
-            Prerequisite(c => c.Settings.Get<bool>("Transactions.Enabled"), "Outbox isn't needed since the receive transactions has been turned off");
+            Prerequisite(c => c.Settings.GetRequiredTransactionModeForReceives() != TransportTransactionMode.None, "Outbox isn't needed since the receive transactions has been turned off");
 
             Prerequisite(c =>
             {
@@ -28,8 +29,6 @@
 
                 return RequireOutboxConsent(c);
             }, "This transport requires outbox consent");
-
-            RegisterStartupTask<DtcRunningWarning>();
         }
 
         static bool RequireOutboxConsent(FeatureConfigurationContext context)
@@ -75,14 +74,15 @@ The reason you need to do this is because we need to ensure that you have read a
 
             //note: in the future we should change the persister api to give us a "outbox factory" so that we can register it in DI here instead of relying on the persister to do it
 
-            context.Pipeline.Register("ForceBatchDispatchToBeIsolated", typeof(ForceBatchDispatchToBeIsolatedBehavior), "Makes sure that we dispatch straigt to the transport so that we can safely set the outbox record to dispatched one the dispatch pipeline returns.");
+            context.RegisterStartupTask(new DtcRunningWarning());
+            context.Pipeline.Register("ForceBatchDispatchToBeIsolated", typeof(ForceBatchDispatchToBeIsolatedBehavior), "Makes sure that we dispatch straight to the transport so that we can safely set the outbox record to dispatched one the dispatch pipeline returns.");
         }
 
     }
 
     class DtcRunningWarning : FeatureStartupTask
     {
-        protected override Task OnStart(IBusContext context)
+        protected override Task OnStart(IBusSession session)
         {
             try
             {
@@ -104,6 +104,11 @@ Because you have configured this endpoint to run with Outbox enabled we recommen
                 // Ignore if we can't check it.
             }
 
+            return TaskEx.Completed;
+        }
+
+        protected override Task OnStop(IBusSession session)
+        {
             return TaskEx.Completed;
         }
 

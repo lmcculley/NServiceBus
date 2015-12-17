@@ -1,7 +1,6 @@
 namespace NServiceBus
 {
     using Installation;
-    using NServiceBus.Features;
 
     /// <summary>
     /// Convenience methods for configuring how instances of  <see cref="INeedToInstallSomething"/>s are run.
@@ -12,16 +11,16 @@ namespace NServiceBus
         /// Enable all <see cref="INeedToInstallSomething"/> to run when the configuration is complete.
         /// </summary>
         /// <param name="config">The <see cref="BusConfiguration"/> instance to apply the settings to.</param>
-        /// <param name="username">The username to pass to <see cref="INeedToInstallSomething.InstallAsync"/>.</param>
+        /// <param name="username">The username to pass to <see cref="INeedToInstallSomething.Install"/>.</param>
         public static void EnableInstallers(this BusConfiguration config, string username = null)
         {
-            Guard.AgainstNull("config", config);
+            Guard.AgainstNull(nameof(config), config);
             if (username != null)
             {
-                config.Settings.Set(InstallationSupport.UsernameKey, username);
+                config.Settings.Set("Installers.UserName", username);
             }
 
-            config.EnableFeature<InstallationSupport>();
+            config.Settings.Set("Installers.Enable", true);
         }
     }
 }

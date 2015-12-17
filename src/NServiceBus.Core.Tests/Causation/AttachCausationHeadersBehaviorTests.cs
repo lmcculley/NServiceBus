@@ -19,9 +19,8 @@
 
             await behavior.Invoke(context, ()=> Task.FromResult(0));
 
-            context.AssertHeaderWasSet(Headers.ConversationId,value=> value != Guid.Empty.ToString());
+            Assert.AreNotEqual(Guid.Empty.ToString(), context.Headers[Headers.ConversationId]);
         }
-
         
         [Test]
         public async Task Should_set_the_conversation_id_to_conversation_id_of_incoming_message()
@@ -32,11 +31,11 @@
             var context = InitializeContext();
 
             var transportMessage = new IncomingMessage("xyz", new Dictionary<string, string> { { Headers.ConversationId, incomingConversationId } }, Stream.Null);
-            context.Set(transportMessage);
+            context.Extensions.Set(transportMessage);
 
             await behavior.Invoke(context, () => Task.FromResult(0));
 
-            context.AssertHeaderWasSet(Headers.ConversationId, value => value == incomingConversationId);
+            Assert.AreEqual(incomingConversationId, context.Headers[Headers.ConversationId]);
         }
 
         [Test,Ignore("Will be refactored to use a explicit override via options instead and not rely on the header being set")]
@@ -50,7 +49,7 @@
             
             await behavior.Invoke(context, () => Task.FromResult(0));
 
-            context.AssertHeaderWasSet(Headers.ConversationId, value => value == userConversationId);   
+            Assert.AreEqual(userConversationId, context.Headers[Headers.ConversationId]);
         }
 
         [Test]
@@ -60,14 +59,14 @@
             var behavior = new AttachCausationHeadersBehavior();
             var context = InitializeContext();
 
-            context.Set(new IncomingMessage("the message id", new Dictionary<string, string>(), Stream.Null));
+            context.Extensions.Set(new IncomingMessage("the message id", new Dictionary<string, string>(), Stream.Null));
 
             await behavior.Invoke(context, () => Task.FromResult(0));
 
-            context.AssertHeaderWasSet(Headers.RelatedTo, value => value == "the message id");   
+            Assert.AreEqual("the message id", context.Headers[Headers.RelatedTo]);
         }
 
-        static OutgoingPhysicalMessageContext InitializeContext()
+        static IOutgoingPhysicalMessageContext InitializeContext()
         {
             var context = new OutgoingPhysicalMessageContext(null, null, ContextHelpers.GetOutgoingContext(new SendOptions()));
             return context;

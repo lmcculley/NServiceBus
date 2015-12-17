@@ -1,4 +1,4 @@
-namespace NServiceBus.Encryption
+namespace NServiceBus
 {
     using System;
     using System.Collections;
@@ -6,6 +6,7 @@ namespace NServiceBus.Encryption
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
+    using Logging;
     using Utils.Reflection;
 
     class EncryptionInspector
@@ -57,7 +58,7 @@ namespace NServiceBus.Encryption
             return ScanObject(root, visitedMembers);
         }
 
-        IEnumerable<Tuple<object, MemberInfo>> ScanObject(object root, HashSet<object> visitedMembers)
+        IEnumerable<Tuple<object, MemberInfo>> ScanObject(object root, ISet<object> visitedMembers)
         {
             if (root == null || visitedMembers.Contains(root))
             {
@@ -99,7 +100,7 @@ namespace NServiceBus.Encryption
                 {
                     continue;
                 }
-
+                
                 var child = member.GetValue(root);
 
                 var items = child as IEnumerable;

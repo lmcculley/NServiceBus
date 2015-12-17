@@ -6,9 +6,9 @@
     using Pipeline;
     using Pipeline.Contexts;
 
-    class MutateIncomingMessageBehavior : Behavior<LogicalMessageProcessingContext>
+    class MutateIncomingMessageBehavior : Behavior<IIncomingLogicalMessageContext>
     {
-        public override async Task Invoke(LogicalMessageProcessingContext context, Func<Task> next)
+        public override async Task Invoke(IIncomingLogicalMessageContext context, Func<Task> next)
         {
             var logicalMessage = context.Message;
             var current = logicalMessage.Instance;

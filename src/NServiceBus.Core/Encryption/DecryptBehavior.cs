@@ -3,11 +3,10 @@ namespace NServiceBus
     using System;
     using System.Reflection;
     using System.Threading.Tasks;
-    using Encryption;
     using Pipeline;
     using Pipeline.Contexts;
 
-    class DecryptBehavior : Behavior<LogicalMessageProcessingContext>
+    class DecryptBehavior : Behavior<IIncomingLogicalMessageContext>
     {
         EncryptionInspector messageInspector;
         IEncryptionService encryptionService;
@@ -17,8 +16,7 @@ namespace NServiceBus
             this.messageInspector = messageInspector;
             this.encryptionService = encryptionService;
         }
-
-        public override async Task Invoke(LogicalMessageProcessingContext context, Func<Task> next)
+        public override async Task Invoke(IIncomingLogicalMessageContext context, Func<Task> next)
         {
             var current = context.Message.Instance;
 
@@ -58,6 +56,7 @@ namespace NServiceBus
             {
                 InsertBefore(WellKnownStep.MutateIncomingMessages);
             }
+
         }
     }
 }

@@ -1,4 +1,4 @@
-namespace NServiceBus.MessagingBestPractices
+namespace NServiceBus
 {
     using System;
     using NServiceBus.Logging;
@@ -35,7 +35,7 @@ namespace NServiceBus.MessagingBestPractices
             {
                 return;
             }
-            throw new Exception("Reply is neither supported for Commands nor Events. Commands should be sent to their logical owner using bus.SendAsync and bus. Events should be Published with bus.PublishAsync.");
+            throw new Exception("Reply is neither supported for Commands nor Events. Commands should be sent to their logical owner using bus.Send and bus. Events should be Published with bus.Publish.");
         }
 
         public void AssertIsValidForPubSub(Type messageType)

@@ -25,14 +25,14 @@ namespace NServiceBus
                 var error = $"Message '{message.Id}' is corrupt and will be moved to '{errorQueue.QueueName}'";
                 Logger.Error(error, ex);
 
-                errorQueue.Send(message, MessageQueueTransactionType.None);
+                errorQueue.Send(message, errorQueue.Transactional ? MessageQueueTransactionType.Single : MessageQueueTransactionType.None);
 
                 return;
             }
 
             using (var bodyStream = message.BodyStream)
             {
-                var pushContext = new PushContext(message.Id, headers, bodyStream, new ContextBag());
+                var pushContext = new PushContext(message.Id, headers, bodyStream, new TransportTransaction(), new ContextBag());
 
                 await onMessage(pushContext).ConfigureAwait(false);
             }

@@ -12,7 +12,7 @@
         {
             var context = await Scenario.Define<Context>()
                 .WithEndpoint<ExactlyOnceEndpoint>(b => b
-                    .When(bus => bus.SendLocalAsync(new InitiatingMessage()))
+                    .When(bus => bus.SendLocal(new InitiatingMessage()))
                     .DoNotFailOnErrorMessages())
                 .Done(c => c.MessageDispatched)
                 .Run();
@@ -29,7 +29,7 @@
         {
             public ExactlyOnceEndpoint()
             {
-                //note: We don't have a explicit way to request "ExactlyOnce" yet so we have to rely on it beeing the default
+                //note: We don't have a explicit way to request "ExactlyOnce" yet so we have to rely on it being the default
                 EndpointSetup<DefaultServer>();
             }
 
@@ -42,7 +42,7 @@
                     options.RequireImmediateDispatch();
                     options.RouteToLocalEndpointInstance();
 
-                    await context.SendAsync(new MessageToBeDispatchedImmediately(), options);
+                    await context.Send(new MessageToBeDispatchedImmediately(), options);
 
                     throw new SimulatedException();
                 }

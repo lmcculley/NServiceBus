@@ -6,7 +6,6 @@ namespace NServiceBus.Sagas
     using System.Linq.Expressions;
     using System.Reflection;
     using System.Runtime.Serialization;
-    using NServiceBus.Utils.Reflection;
 
     /// <summary>
     /// Contains metadata for known sagas.
@@ -215,7 +214,7 @@ Sagas can only have mappings that correlate on a single saga property. Please us
                 foreach (var interfaceType in finderType.GetInterfaces())
                 {
                     var args = interfaceType.GetGenericArguments();
-                    //since we dont want to process the IFinder type
+                    //since we don't want to process the IFinder type
                     if (args.Length != 2)
                     {
                         continue;

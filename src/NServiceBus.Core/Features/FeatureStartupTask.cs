@@ -1,6 +1,5 @@
 ﻿namespace NServiceBus.Features
 {
-    using System;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -9,46 +8,25 @@
     public abstract class FeatureStartupTask
     {
         /// <summary>
-        /// Will be called when the endpoint starts up if the feature has been activated.
+        /// Will be called after an endpoint has been started but before processing any messages, if the feature has been activated.
         /// </summary>
-        [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", ReplacementTypeOrMember = "OnStart(IBusContext context)")]
-        protected virtual void OnStart()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        ///  Will be called after an endpoint has stopped processing messages, if the feature has been activated.
-        /// </summary>
-        [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", ReplacementTypeOrMember = "OnStop(IBusContext context)")]
-        protected virtual void OnStop()
-        {
-            throw new NotImplementedException();
-        }
+        /// <param name="session">Bus session.</param>
+        protected abstract Task OnStart(IBusSession session);
 
         /// <summary>
         /// Will be called after an endpoint has been started but before processing any messages, if the feature has been activated.
         /// </summary>
-        /// <param name="context">Bus context.</param>
-        protected abstract Task OnStart(IBusContext context);
-
-        /// <summary>
-        /// Will be called after an endpoint has been started but before processing any messages, if the feature has been activated.
-        /// </summary>
-        /// <param name="context">Bus context.</param>
-        protected virtual Task OnStop(IBusContext context)
-        {
-            return TaskEx.Completed;
-        }
+        /// <param name="session">Bus session.</param>
+        protected abstract Task OnStop(IBusSession session);
         
-        internal Task PerformStartup(IBusContext context)
+        internal Task PerformStartup(IBusSession session)
         {
-            return OnStart(context);
+            return OnStart(session);
         }
 
-        internal Task PerformStop(IBusContext context)
+        internal Task PerformStop(IBusSession session)
         {
-            return OnStop(context);
+            return OnStop(session);
         }
     }
 }

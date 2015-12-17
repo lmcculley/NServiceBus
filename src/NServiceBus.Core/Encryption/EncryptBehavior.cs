@@ -3,11 +3,10 @@
     using System;
     using System.Reflection;
     using System.Threading.Tasks;
-    using Encryption;
     using NServiceBus.Pipeline.OutgoingPipeline;
     using Pipeline;
 
-    class EncryptBehavior : Behavior<OutgoingLogicalMessageContext>
+    class EncryptBehavior : Behavior<IOutgoingLogicalMessageContext>
     {
         EncryptionInspector messageInspector;
         IEncryptionService encryptionService;
@@ -18,7 +17,7 @@
             this.encryptionService = encryptionService;
         }
 
-        public override Task Invoke(OutgoingLogicalMessageContext context, Func<Task> next)
+        public override Task Invoke(IOutgoingLogicalMessageContext context, Func<Task> next)
         {
             var currentMessageToSend = context.Message.Instance;
 

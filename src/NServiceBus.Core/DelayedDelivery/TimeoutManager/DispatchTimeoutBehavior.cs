@@ -8,19 +8,19 @@ namespace NServiceBus
 
     class DispatchTimeoutBehavior : SatelliteBehavior
     {
-        public DispatchTimeoutBehavior(IDispatchMessages dispatcher, IPersistTimeouts persister, TransactionSupport transactionSupport)
+        public DispatchTimeoutBehavior(IDispatchMessages dispatcher, IPersistTimeouts persister, TransportTransactionMode transportTransactionMode)
         {
             this.dispatcher = dispatcher;
             this.persister = persister;
-            this.dispatchConsistency = GetDispatchConsistency(transactionSupport);
+            dispatchConsistency = GetDispatchConsistency(transportTransactionMode);
         }
 
-        protected override async Task Terminate(PhysicalMessageProcessingContext context)
+        protected override async Task Terminate(IIncomingPhysicalMessageContext context)
         {
             var message = context.Message;
             var timeoutId = message.Headers["Timeout.Id"];
 
-            var timeoutData = await persister.Peek(timeoutId, context).ConfigureAwait(false);
+            var timeoutData = await persister.Peek(timeoutId, context.Extensions).ConfigureAwait(false);
 
             if (timeoutData == null)
             {
@@ -32,15 +32,20 @@ namespace NServiceBus
             timeoutData.Headers[Headers.TimeSent] = DateTimeExtensions.ToWireFormattedString(DateTime.UtcNow);
             timeoutData.Headers["NServiceBus.RelatedToTimeoutId"] = timeoutData.Id;
 
-            await dispatcher.Dispatch(new[] { new TransportOperation(new OutgoingMessage(message.MessageId, timeoutData.Headers, timeoutData.State), sendOptions) }, context).ConfigureAwait(false);
+            await dispatcher.Dispatch(new[] { new TransportOperation(new OutgoingMessage(message.MessageId, timeoutData.Headers, timeoutData.State), sendOptions) }, context.Extensions).ConfigureAwait(false);
 
-            await persister.TryRemove(timeoutId, context).ConfigureAwait(false);
+            var timeoutRemoved = await persister.TryRemove(timeoutId, context.Extensions).ConfigureAwait(false);
+            if (!timeoutRemoved)
+            {
+                // timeout was concurrently removed between Peek and TryRemove. Throw an exception to rollback the dispatched message if possible.
+                throw new Exception($"timeout '{timeoutId}' was concurrently processed.");
+            }
         }
 
-        static DispatchConsistency GetDispatchConsistency(TransactionSupport transactionSupport)
+        static DispatchConsistency GetDispatchConsistency(TransportTransactionMode transportTransactionMode)
         {
             // dispatch message isolated from existing transactions when not using DTC to avoid loosing timeout data when the transaction commit fails.
-            return transactionSupport == TransactionSupport.Distributed
+            return transportTransactionMode == TransportTransactionMode.TransactionScope
                 ? DispatchConsistency.Default
                 : DispatchConsistency.Isolated;
         }

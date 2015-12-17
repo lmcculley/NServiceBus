@@ -2,10 +2,12 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using NServiceBus.Configuration.AdvanceExtensibility;
     using NServiceBus.Logging;
+    using NServiceBus.Routing;
     using NServiceBus.Support;
     using NServiceBus.Transports;
 
@@ -14,7 +16,7 @@
         static ILog Logger = LogManager.GetLogger<EndpointRunner>();
         EndpointBehavior behavior;
         IStartableEndpoint startable;
-        IEndpoint endpoint;
+        IEndpointInstance endpointInstance;
         EndpointConfiguration configuration;
         ScenarioContext scenarioContext;
         BusConfiguration busConfiguration;
@@ -49,13 +51,13 @@
                     busConfiguration.SendOnly();
                 }
 
-                var initializable = Endpoint.Create(busConfiguration);
+                var initializable = Endpoint.Prepare(busConfiguration);
                 startable = await initializable.Initialize().ConfigureAwait(false);
 
                 if (!configuration.SendOnly)
                 {
                     var transportDefinition = busConfiguration.GetSettings().Get<TransportDefinition>();
-                    scenarioContext.HasNativePubSubSupport = transportDefinition.HasNativePubSubSupport;
+                    scenarioContext.HasNativePubSubSupport = transportDefinition.GetOutboundRoutingPolicy(busConfiguration.GetSettings()).Publishes == OutboundRoutingType.Multicast;
                 }
 
                 return Result.Success();
@@ -81,7 +83,7 @@
         {
             try
             {
-                endpoint = await startable.StartAsync().ConfigureAwait(false);
+                endpointInstance = await startable.Start().ConfigureAwait(false);
 
                 if (token.IsCancellationRequested)
                 {
@@ -107,7 +109,7 @@
                     await Task.Run(async () =>
                     {
                         var executedWhens = new List<Guid>();
-                        var sendContext = endpoint.CreateBusContext();
+                        var sendContext = endpointInstance.CreateBusSession();
 
                         while (!token.IsCancellationRequested)
                         {
@@ -155,9 +157,7 @@
         {
             try
             {
-                await endpoint.StopAsync().ConfigureAwait(false);
-
-                await Cleanup().ConfigureAwait(false);
+                await endpointInstance.Stop().ConfigureAwait(false);
 
                 return Result.Success();
             }
@@ -167,21 +167,22 @@
 
                 return Result.Failure(ex);
             }
+            finally
+            {
+                await Cleanup().ConfigureAwait(false);
+            }
         }
 
-        async Task Cleanup()
+        Task Cleanup()
         {
-            dynamic transportCleaner;
-            if (busConfiguration.GetSettings().TryGet("CleanupTransport", out transportCleaner))
+            List<IConfigureTestExecution> cleaners;
+            if (busConfiguration.GetSettings().TryGet("Cleaners", out cleaners))
             {
-                await transportCleaner.Cleanup();
+                var tasks = cleaners.Select(cleaner => cleaner.Cleanup());
+                return Task.WhenAll(tasks);
             }
 
-            dynamic persistenceCleaner;
-            if (busConfiguration.GetSettings().TryGet("CleanupPersistence", out persistenceCleaner))
-            {
-                await persistenceCleaner.Cleanup();
-            }
+            return Task.FromResult(0);
         }
 
         public string Name()

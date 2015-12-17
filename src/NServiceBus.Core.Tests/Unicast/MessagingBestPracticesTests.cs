@@ -1,7 +1,6 @@
 ﻿namespace NServiceBus.Unicast.Tests
 {
     using System;
-    using NServiceBus.MessagingBestPractices;
     using NUnit.Framework;
 
     [TestFixture]
@@ -16,7 +15,7 @@
             {
                 var invalidOperationException = Assert.Throws<Exception>(() => 
                     new Validations(new Conventions()).AssertIsValidForReply(typeof(MyCommand)));
-                Assert.AreEqual("Reply is neither supported for Commands nor Events. Commands should be sent to their logical owner using bus.SendAsync and bus. Events should be Published with bus.PublishAsync.", invalidOperationException.Message);
+                Assert.AreEqual("Reply is neither supported for Commands nor Events. Commands should be sent to their logical owner using bus.Send and bus. Events should be Published with bus.Publish.", invalidOperationException.Message);
             }
 
             [Test]
@@ -24,7 +23,7 @@
             {
                 var invalidOperationException = Assert.Throws<Exception>(() =>
                     new Validations(new Conventions()).AssertIsValidForReply(typeof(MyEvent)));
-                Assert.AreEqual("Reply is neither supported for Commands nor Events. Commands should be sent to their logical owner using bus.SendAsync and bus. Events should be Published with bus.PublishAsync.", invalidOperationException.Message);
+                Assert.AreEqual("Reply is neither supported for Commands nor Events. Commands should be sent to their logical owner using bus.Send and bus. Events should be Published with bus.Publish.", invalidOperationException.Message);
             }
 
             [Test]

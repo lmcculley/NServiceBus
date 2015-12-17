@@ -9,7 +9,6 @@
     using DeliveryConstraints;
     using NServiceBus.Outbox;
     using NServiceBus.Performance.TimeToBeReceived;
-    using NServiceBus.Pipeline;
     using NServiceBus.Pipeline.Contexts;
     using NServiceBus.Routing;
     using Transports;
@@ -108,9 +107,9 @@
             Assert.Null(fakeOutbox.StoredMessage);
         }
 
-        static TransportReceiveContext CreateContext()
+        static ITransportReceiveContext CreateContext()
         {
-            var context = new TransportReceiveContext(new IncomingMessage("id", new Dictionary<string, string>(), new MemoryStream()), new RootContext(null));
+            var context = new TransportReceiveContext(new IncomingMessage("id", new Dictionary<string, string>(), new MemoryStream()), null, new RootContext(null));
             return context;
         }
 
@@ -123,7 +122,7 @@
             behavior = new TransportReceiveToPhysicalMessageProcessingConnector(fakeBatchPipeline, fakeOutbox);
         }
 
-        async Task Invoke(TransportReceiveContext context)
+        async Task Invoke(ITransportReceiveContext context)
         {
             await behavior.Invoke(context, c => TaskEx.Completed).ConfigureAwait(false);
         }
@@ -133,11 +132,11 @@
         TransportReceiveToPhysicalMessageProcessingConnector behavior;
 
         class MyEvent { }
-        class FakeBatchPipeline : IPipelineBase<BatchDispatchContext>
+        class FakeBatchPipeline : IPipelineBase<IBatchDispatchContext>
         {
             public IEnumerable<Transports.TransportOperation> TransportOperations { get; set; }
 
-            public Task Invoke(BatchDispatchContext context)
+            public Task Invoke(IBatchDispatchContext context)
             {
                 TransportOperations = context.Operations;
 

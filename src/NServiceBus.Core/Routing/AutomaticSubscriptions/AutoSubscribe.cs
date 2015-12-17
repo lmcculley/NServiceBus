@@ -5,7 +5,6 @@
     using System.Linq;
     using System.Threading.Tasks;
     using NServiceBus.Logging;
-    using NServiceBus.Routing.MessageDrivenSubscriptions;
     using NServiceBus.Transports;
     using NServiceBus.Unicast;
 
@@ -18,7 +17,6 @@
         {
             EnableByDefault();
             Prerequisite(context => !context.Settings.GetOrDefault<bool>("Endpoint.SendOnly"), "Send only endpoints can't autosubscribe.");
-            RegisterStartupTask<ApplySubscriptions>();
         }
 
         /// <summary>
@@ -33,23 +31,23 @@
             {
                 settings = new SubscribeSettings();
             }
-            
+
             var conventions = context.Settings.Get<Conventions>();
-        
-            if (transportDefinition.HasSupportForCentralizedPubSub)
+
+            if (transportDefinition.GetOutboundRoutingPolicy(context.Settings).Publishes == OutboundRoutingType.Multicast)
             {
-                context.Container.ConfigureComponent(b =>
+                context.RegisterStartupTask(b =>
                 {
                     var handlerRegistry = b.Build<MessageHandlerRegistry>();
 
                     var messageTypesHandled = GetMessageTypesHandledByThisEndpoint(handlerRegistry, conventions, settings);
 
                     return new ApplySubscriptions(messageTypesHandled);
-                }, DependencyLifecycle.SingleInstance);
+                });
             }
             else
             {
-                context.Container.ConfigureComponent(b =>
+                context.RegisterStartupTask(b =>
                 {
                     var handlerRegistry = b.Build<MessageHandlerRegistry>();
 
@@ -63,12 +61,11 @@
                             .ToList();
                     }
                     return new ApplySubscriptions(messageTypesToSubscribe);
-
-                }, DependencyLifecycle.SingleInstance);
+                });
             }
         }
 
-        static List<Type> GetMessageTypesHandledByThisEndpoint(MessageHandlerRegistry handlerRegistry, Conventions conventions,SubscribeSettings settings)
+        static List<Type> GetMessageTypesHandledByThisEndpoint(MessageHandlerRegistry handlerRegistry, Conventions conventions, SubscribeSettings settings)
         {
             var messageTypesHandled = handlerRegistry.GetMessageTypes()//get all potential messages
                 .Where(t => !conventions.IsInSystemConventionList(t)) //never auto-subscribe system messages
@@ -87,13 +84,18 @@
                 this.eventsToSubscribe = eventsToSubscribe;
             }
 
-            protected override async Task OnStart(IBusContext context)
+            protected override async Task OnStart(IBusSession session)
             {
                 foreach (var eventType in eventsToSubscribe)
                 {
-                    await context.SubscribeAsync(eventType).ConfigureAwait(false);
+                    await session.Subscribe(eventType).ConfigureAwait(false);
                     Logger.DebugFormat("Auto subscribed to event {0}", eventType);
                 }
+            }
+
+            protected override Task OnStop(IBusSession session)
+            {
+                return TaskEx.Completed;
             }
 
             IEnumerable<Type> eventsToSubscribe;

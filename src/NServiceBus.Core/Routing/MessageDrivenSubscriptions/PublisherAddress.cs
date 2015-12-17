@@ -9,25 +9,25 @@ namespace NServiceBus.Routing.MessageDrivenSubscriptions
     /// </summary>
     public class PublisherAddress
     {
-        EndpointName endpoint;
-        EndpointInstanceName[] instances;
+        Endpoint endpoint;
+        EndpointInstance[] instances;
         string[] addresses;
 
         /// <summary>
         /// Creates a new publisher based on the endpoint name.
         /// </summary>
-        public PublisherAddress(EndpointName endpoint)
+        public PublisherAddress(Endpoint endpoint)
         {
-            Guard.AgainstNull("endpoint", endpoint);
+            Guard.AgainstNull(nameof(endpoint), endpoint);
             this.endpoint = endpoint;
         }
 
         /// <summary>
         /// Creates a new publisher based on a set of endpoint instance names.
         /// </summary>
-        public PublisherAddress(params EndpointInstanceName[] instances)
+        public PublisherAddress(params EndpointInstance[] instances)
         {
-            Guard.AgainstNull("instances", instances);
+            Guard.AgainstNull(nameof(instances), instances);
             if (instances.Length == 0)
             {
                 throw new ArgumentException("You have to provide at least one instance.");
@@ -40,7 +40,7 @@ namespace NServiceBus.Routing.MessageDrivenSubscriptions
         /// </summary>
         public PublisherAddress(params string[] addresses)
         {
-            Guard.AgainstNull("addresses",addresses);
+            Guard.AgainstNull(nameof(addresses),addresses);
             if (addresses.Length == 0)
             {
                 throw new ArgumentException("You need to provide at least one address.");
@@ -48,7 +48,7 @@ namespace NServiceBus.Routing.MessageDrivenSubscriptions
             this.addresses = addresses;
         }
 
-        internal IEnumerable<string> Resolve(Func<EndpointName, IEnumerable<EndpointInstanceName>> instanceResolver, Func<EndpointInstanceName, string> addressResolver)
+        internal IEnumerable<string> Resolve(Func<Endpoint, IEnumerable<EndpointInstance>> instanceResolver, Func<EndpointInstance, string> addressResolver)
         {
             if (addresses != null)
             {

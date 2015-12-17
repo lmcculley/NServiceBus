@@ -13,11 +13,11 @@
         /// <summary>
         /// Method called at startup.
         /// </summary>
-        Task StartAsync(IBusContext context);
+        Task Start(IBusSession session);
 
         /// <summary>
         /// Method called on shutdown.
         /// </summary>
-        Task StopAsync(IBusContext context);
+        Task Stop(IBusSession session);
     }
 }

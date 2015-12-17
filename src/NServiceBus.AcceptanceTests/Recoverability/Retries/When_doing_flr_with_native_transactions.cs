@@ -16,7 +16,7 @@
         {
             await Scenario.Define<Context>(c => { c.Id = Guid.NewGuid(); })
                     .WithEndpoint<RetryEndpoint>(b => b
-                        .When((bus, context) => bus.SendLocalAsync(new MessageToBeRetried { Id = context.Id }))
+                        .When((bus, context) => bus.SendLocal(new MessageToBeRetried { Id = context.Id }))
                         .DoNotFailOnErrorMessages())
                     .Done(c => c.ForwardedToErrorQueue)
                     .Repeat(r => r.For(Transports.Default))
@@ -46,10 +46,11 @@
         {
             public RetryEndpoint()
             {
-                EndpointSetup<DefaultServer>(b =>
+                EndpointSetup<DefaultServer>((config, context) =>
                 {
-                    b.EnableFeature<FirstLevelRetries>();
-                    b.Transactions().DisableDistributedTransactions();
+                    config.EnableFeature<FirstLevelRetries>();
+                    config.UseTransport(context.GetTransportType())
+                            .Transactions(TransportTransactionMode.ReceiveOnly);
                 });
             }
 
@@ -59,16 +60,13 @@
 
                 public BusNotifications BusNotifications { get; set; }
 
-                public Task StartAsync(IBusContext context)
+                public Task Start(IBusSession session)
                 {
-                    BusNotifications.Errors.MessageSentToErrorQueue.Subscribe(e =>
-                    {
-                        Context.ForwardedToErrorQueue = true;
-                    });
+                    BusNotifications.Errors.MessageSentToErrorQueue += (sender, message) => Context.ForwardedToErrorQueue = true;
                     return Task.FromResult(0);
                 }
 
-                public Task StopAsync(IBusContext context)
+                public Task Stop(IBusSession session)
                 {
                     return Task.FromResult(0);
                 }

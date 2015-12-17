@@ -1,21 +1,19 @@
-﻿namespace NServiceBus.Pipeline
+﻿namespace NServiceBus
 {
-    using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
     using Janitor;
+    using NServiceBus.Pipeline;
     using NServiceBus.Settings;
     using NServiceBus.Unicast.Transport;
     using ObjectBuilder;
 
     [SkipWeaving]
     class PipelineBase<T> : IPipelineBase<T>
-        where T : BehaviorContext
+        where T : IBehaviorContext
     {
         public PipelineBase(IBuilder builder, ReadOnlySettings settings, PipelineModifications pipelineModifications)
         {
-            busNotifications = builder.Build<BusNotifications>();
-
             var coordinator = new StepRegistrationsCoordinator(pipelineModifications.Removals, pipelineModifications.Replacements);
           
             foreach (var rego in pipelineModifications.Additions.Where(x => x.IsEnabled(settings)))
@@ -23,9 +21,8 @@
                 coordinator.Register(rego);
             }
 
-            steps = coordinator.BuildPipelineModelFor<T>();
-
-            behaviors = steps.Select(r => r.CreateBehavior(builder)).ToArray();
+            behaviors = coordinator.BuildPipelineModelFor<T>()
+                .Select(r => r.CreateBehavior(builder)).ToArray();
         }
 
         public void Initialize(PipelineInfo pipelineInfo)
@@ -54,18 +51,10 @@
 
         public Task Invoke(T context)
         {
-            var lookupSteps = steps.ToDictionary(rs => rs.BehaviorType, ss => ss.StepId);
-            var pipeline = new BehaviorChain(behaviors, lookupSteps, busNotifications);
+            var pipeline = new BehaviorChain(behaviors);
             return pipeline.Invoke(context);
         }
 
         BehaviorInstance[] behaviors;
-        BusNotifications busNotifications;
-        IList<RegisterStep> steps;
-    }
-
-    interface IPipelineBase<T>
-    {
-        Task Invoke(T context);
     }
 }

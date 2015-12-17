@@ -4,6 +4,7 @@ namespace NServiceBus.Serializers.Json.Tests
     using System.Threading.Tasks;
     using Features;
     using NServiceBus.ObjectBuilder;
+    using NServiceBus.Routing;
     using NUnit.Framework;
 
     [TestFixture]
@@ -20,19 +21,15 @@ namespace NServiceBus.Serializers.Json.Tests
             builder.UseSerialization<JsonSerializer>();
             builder.EnableFeature<EncodingValidatorFeature>();
 
-            var endpoint = await Endpoint.StartAsync(builder);
-            await endpoint.StopAsync();
+            var endpoint = await Endpoint.Start(builder);
+            await endpoint.Stop();
         }
 
         class EncodingValidatorFeature : Feature
         {
-            public EncodingValidatorFeature()
-            {
-                RegisterStartupTask<ValidatorTask>();
-            }
-
             protected internal override void Setup(FeatureConfigurationContext context)
             {
+                context.RegisterStartupTask(b => new ValidatorTask(b));
             }
 
             class ValidatorTask : FeatureStartupTask
@@ -44,11 +41,16 @@ namespace NServiceBus.Serializers.Json.Tests
                     this.builder = builder;
                 }
 
-                protected override Task OnStart(IBusContext context)
+                protected override Task OnStart(IBusSession session)
                 {
                     var serializer = builder.Build<JsonMessageSerializer>();
                     Assert.AreSame(Encoding.UTF8, serializer.Encoding);
                     return Task.FromResult(0);
+                }
+
+                protected override Task OnStop(IBusSession session)
+                {
+                    return TaskEx.Completed;
                 }
             }
         }

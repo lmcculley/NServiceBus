@@ -6,9 +6,11 @@
     using NServiceBus.AcceptanceTesting;
     using NServiceBus.AcceptanceTests.EndpointTemplates;
     using NServiceBus.Extensibility;
+    using NServiceBus.Routing;
     using NServiceBus.Settings;
     using NServiceBus.Transports;
     using NUnit.Framework;
+    using CriticalError = NServiceBus.CriticalError;
 
     public class When_using_concurrency_limit : NServiceBusAcceptanceTest
     {
@@ -37,8 +39,9 @@
 
         class FakeReceiver : IPushMessages
         {
-            public void Init(Func<PushContext, Task> pipe, PushSettings settings)
+            public Task Init(Func<PushContext, Task> pipe, CriticalError criticalError, PushSettings settings)
             {
+                return Task.FromResult(0);
             }
 
             public void Start(PushRuntimeSettings limitations)
@@ -46,7 +49,7 @@
                 Assert.AreEqual(10, limitations.MaxConcurrency);
             }
 
-            public Task StopAsync()
+            public Task Stop()
             {
                 return Task.FromResult(0);
             }
@@ -54,8 +57,9 @@
 
         class FakeQueueCreator : ICreateQueues
         {
-            public void CreateQueueIfNecessary(string address, string account)
+            public Task CreateQueueIfNecessary(QueueBindings queueBindings, string identity)
             {
+                return Task.FromResult(0);
             }
         }
 
@@ -69,25 +73,24 @@
 
         class FakeTransport : TransportDefinition
         {
-            protected override void ConfigureForReceiving(TransportReceivingConfigurationContext context)
+            protected override TransportReceivingConfigurationResult ConfigureForReceiving(TransportReceivingConfigurationContext context)
             {
-                context.SetMessagePumpFactory(c => new FakeReceiver());
-                context.SetQueueCreatorFactory(() => new FakeQueueCreator());
+                return new TransportReceivingConfigurationResult(() => new FakeReceiver(), () => new FakeQueueCreator(), () => Task.FromResult(StartupCheckResult.Success));
             }
 
-            protected override void ConfigureForSending(TransportSendingConfigurationContext context)
+            protected override TransportSendingConfigurationResult ConfigureForSending(TransportSendingConfigurationContext context)
             {
-                context.SetDispatcherFactory(() => new FakeDispatcher());
+                return new TransportSendingConfigurationResult(() => new FakeDispatcher(), () => Task.FromResult(StartupCheckResult.Success));
             }
-
+            
             public override IEnumerable<Type> GetSupportedDeliveryConstraints()
             {
                 yield break;
             }
 
-            public override TransactionSupport GetTransactionSupport()
+            public override TransportTransactionMode GetSupportedTransactionMode()
             {
-                return TransactionSupport.None;
+                return TransportTransactionMode.None;
             }
 
             public override IManageSubscriptions GetSubscriptionManager()
@@ -95,11 +98,11 @@
                 throw new NotImplementedException();
             }
 
-            public override string GetDiscriminatorForThisEndpointInstance()
+            public override EndpointInstance BindToLocalEndpoint(EndpointInstance instance, ReadOnlySettings settings)
             {
-                return null;
+                return instance;
             }
-
+            
             public override string ToTransportAddress(LogicalAddress logicalAddress)
             {
                 return logicalAddress.ToString();
@@ -107,7 +110,7 @@
 
             public override OutboundRoutingPolicy GetOutboundRoutingPolicy(ReadOnlySettings settings)
             {
-                return new OutboundRoutingPolicy(OutboundRoutingType.DirectSend, OutboundRoutingType.DirectSend, OutboundRoutingType.DirectSend);
+                return new OutboundRoutingPolicy(OutboundRoutingType.Unicast, OutboundRoutingType.Unicast, OutboundRoutingType.Unicast);
             }
 
             public override string ExampleConnectionStringForErrorMessage => null;

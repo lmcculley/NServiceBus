@@ -17,7 +17,7 @@
             var exception = Assert.Throws<AggregateException>(async () => await
                 Scenario.Define<Context>()
                     .WithEndpoint<RetryEndpoint>(b => b
-                        .When((bus, c) => bus.SendLocalAsync(new MessageWhichFailsRetries())))
+                        .When((bus, c) => bus.SendLocal(new MessageWhichFailsRetries())))
                     .Done(c => c.ForwardedToErrorQueue)
                     .Run())
                 .ExpectFailedMessages();
@@ -57,16 +57,13 @@
 
                 public BusNotifications BusNotifications { get; set; }
 
-                public Task StartAsync(IBusContext context)
+                public Task Start(IBusSession session)
                 {
-                    BusNotifications.Errors.MessageSentToErrorQueue.Subscribe(e =>
-                    {
-                        Context.ForwardedToErrorQueue = true;
-                    });
+                    BusNotifications.Errors.MessageSentToErrorQueue += (sender, message) => Context.ForwardedToErrorQueue = true;
                     return Task.FromResult(0);
                 }
 
-                public Task StopAsync(IBusContext context)
+                public Task Stop(IBusSession session)
                 {
                     return Task.FromResult(0);
                 }

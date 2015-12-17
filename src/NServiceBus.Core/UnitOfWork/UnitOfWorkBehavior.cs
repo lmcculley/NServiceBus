@@ -7,23 +7,27 @@
     using Pipeline;
     using UnitOfWork;
 
-    class UnitOfWorkBehavior : Behavior<PhysicalMessageProcessingContext>
+    class UnitOfWorkBehavior : Behavior<IIncomingPhysicalMessageContext>
     {
-        public override async Task Invoke(PhysicalMessageProcessingContext context, Func<Task> next)
+        public override async Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
         {
+            var unitsOfWork = new Stack<IManageUnitsOfWork>();
+
             try
             {
                 foreach (var uow in context.Builder.BuildAll<IManageUnitsOfWork>())
                 {
                     unitsOfWork.Push(uow);
-                    uow.Begin();
+                    await uow.Begin()
+                        .ConfigureAwait(false);
                 }
 
                 await next().ConfigureAwait(false);
 
                 while (unitsOfWork.Count > 0)
                 {
-                    unitsOfWork.Pop().End();
+                    await unitsOfWork.Pop()
+                        .End().ConfigureAwait(false);
                 }
             }
             catch (MessageDeserializationException)
@@ -32,7 +36,7 @@
             }
             catch (Exception exception)
             {
-                var trailingExceptions = AppendEndExceptionsAndRethrow(exception);
+                var trailingExceptions = await AppendEndExceptions(unitsOfWork, exception).ConfigureAwait(false);
                 if (trailingExceptions.Any())
                 {
                     trailingExceptions.Insert(0, exception);
@@ -42,7 +46,7 @@
             }
         }
 
-        List<Exception> AppendEndExceptionsAndRethrow(Exception initialException)
+        async Task<List<Exception>> AppendEndExceptions(Stack<IManageUnitsOfWork> unitsOfWork, Exception initialException)
         {
             var exceptionsToThrow = new List<Exception>();
             while (unitsOfWork.Count > 0)
@@ -50,7 +54,8 @@
                 var uow = unitsOfWork.Pop();
                 try
                 {
-                    uow.End(initialException);
+                    await uow.End(initialException)
+                        .ConfigureAwait(false);
                 }
                 catch (Exception endException)
                 {
@@ -59,8 +64,5 @@
             }
             return exceptionsToThrow;
         }
-
-        Stack<IManageUnitsOfWork> unitsOfWork = new Stack<IManageUnitsOfWork>();
-
     }
 }

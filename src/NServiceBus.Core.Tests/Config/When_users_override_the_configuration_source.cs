@@ -3,6 +3,7 @@ namespace NServiceBus.Core.Tests.Config
     using System.Threading.Tasks;
     using NServiceBus.Config.ConfigurationSource;
     using NServiceBus.Features;
+    using NServiceBus.Routing;
     using NServiceBus.Settings;
     using NUnit.Framework;
 
@@ -19,19 +20,15 @@ namespace NServiceBus.Core.Tests.Config
             builder.EnableFeature<ConfigSectionValidatorFeature>();
             builder.CustomConfigurationSource(new UserConfigurationSource());
 
-            var endpoint = await Endpoint.StartAsync(builder);
-            await endpoint.StopAsync();
+            var endpoint = await Endpoint.Start(builder);
+            await endpoint.Stop();
         }
 
         class ConfigSectionValidatorFeature : Feature
         {
-            public ConfigSectionValidatorFeature()
-            {
-                RegisterStartupTask<ValidatorTask>();
-            }
-
             protected internal override void Setup(FeatureConfigurationContext context)
             {
+                context.RegisterStartupTask(new ValidatorTask(context.Settings));
             }
 
             class ValidatorTask : FeatureStartupTask
@@ -43,11 +40,16 @@ namespace NServiceBus.Core.Tests.Config
                     this.settings = settings;
                 }
 
-                protected override Task OnStart(IBusContext context)
+                protected override Task OnStart(IBusSession session)
                 {
                     var section = settings.GetConfigSection<TestConfigurationSection>();
                     Assert.AreEqual(section.TestSetting, "TestValue");
                     return Task.FromResult(0);
+                }
+
+                protected override Task OnStop(IBusSession session)
+                {
+                    return TaskEx.Completed;
                 }
             }
         }

@@ -1,10 +1,11 @@
-﻿namespace NServiceBus.Pipeline
+﻿namespace NServiceBus
 {
     using System;
     using System.Threading.Tasks;
+    using NServiceBus.Pipeline;
 
     interface IBehaviorInvoker
     {
-        Task Invoke(object behavior, BehaviorContext context, Func<BehaviorContext, Task> next);
+        Task Invoke(object behavior, IBehaviorContext context, Func<IBehaviorContext, Task> next);
     }
 }

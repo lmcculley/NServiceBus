@@ -4,15 +4,15 @@
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
+    using NServiceBus.Logging;
     using NServiceBus.OutgoingPipeline;
     using NServiceBus.Pipeline;
     using NServiceBus.Pipeline.OutgoingPipeline;
     using NServiceBus.Serialization;
-    using NServiceBus.TransportDispatch;
     using NServiceBus.Unicast.Messages;
 
     //todo: rename to LogicalOutgoingContext
-    class SerializeMessageConnector : StageConnector<OutgoingLogicalMessageContext, OutgoingPhysicalMessageContext>
+    class SerializeMessageConnector : StageConnector<IOutgoingLogicalMessageContext, IOutgoingPhysicalMessageContext>
     {
         IMessageSerializer messageSerializer;
         MessageMetadataRegistry messageMetadataRegistry;
@@ -23,22 +23,29 @@
             this.messageMetadataRegistry = messageMetadataRegistry;
         }
 
-        public override async Task Invoke(OutgoingLogicalMessageContext context, Func<OutgoingPhysicalMessageContext, Task> next)
+        public override async Task Invoke(IOutgoingLogicalMessageContext context, Func<IOutgoingPhysicalMessageContext, Task> next)
         {
+            if (log.IsDebugEnabled)
+            {
+                log.DebugFormat("Serializing message '{0}' with id '{1}', ToString() of the message yields: {2} \n",
+                    context.Message.MessageType != null ? context.Message.MessageType.AssemblyQualifiedName : "unknown",
+                    context.MessageId, context.Message.Instance);
+            }
+
             if (context.ShouldSkipSerialization())
             {
                 await next(new OutgoingPhysicalMessageContext(new byte[0], context.RoutingStrategies, context)).ConfigureAwait(false);
                 return;
             }
 
-            context.SetHeader(Headers.ContentType, messageSerializer.ContentType);
-            context.SetHeader(Headers.EnclosedMessageTypes, SerializeEnclosedMessageTypes(context.Message.MessageType));
+            context.Headers[Headers.ContentType] = messageSerializer.ContentType;
+            context.Headers[Headers.EnclosedMessageTypes] = SerializeEnclosedMessageTypes(context.Message.MessageType);
 
             var array = Serialize(context);
             await next(new OutgoingPhysicalMessageContext(array, context.RoutingStrategies, context)).ConfigureAwait(false);
         }
 
-        byte[] Serialize(OutgoingLogicalMessageContext context)
+        byte[] Serialize(IOutgoingLogicalMessageContext context)
         {
             using (var ms = new MemoryStream())
             {
@@ -53,6 +60,8 @@
             var distinctTypes = metadata.MessageHierarchy.Distinct();
             return string.Join(";", distinctTypes.Select(t => t.AssemblyQualifiedName));
         }
+
+        static ILog log = LogManager.GetLogger<SerializeMessageConnector>();
 
     }
 }

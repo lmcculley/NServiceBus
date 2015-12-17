@@ -6,7 +6,9 @@ namespace NServiceBus.Transports.Msmq
     using System.Messaging;
     using System.Threading.Tasks;
     using System.Transactions;
+    using NServiceBus.DeliveryConstraints;
     using NServiceBus.Extensibility;
+    using NServiceBus.Performance.TimeToBeReceived;
     using NServiceBus.Routing;
     using NServiceBus.Transports.Msmq.Config;
     using NServiceBus.Unicast.Queuing;
@@ -33,7 +35,7 @@ namespace NServiceBus.Transports.Msmq
         /// </summary>
         public Task Dispatch(IEnumerable<TransportOperation> transportOperations, ContextBag context)
         {
-            Guard.AgainstNull("transportOperations", transportOperations);
+            Guard.AgainstNull(nameof(transportOperations), transportOperations);
 
             foreach (var transportOperation in transportOperations)
             {
@@ -47,50 +49,53 @@ namespace NServiceBus.Transports.Msmq
             var dispatchOptions = transportOperation.DispatchOptions;
             var message = transportOperation.Message;
 
-                var routingStrategy = dispatchOptions.AddressTag as UnicastAddressTag;
+            var routingStrategy = dispatchOptions.AddressTag as UnicastAddressTag;
 
-                if (routingStrategy == null)
-                {
-                    throw new Exception("The MSMQ transport only supports the `DirectRoutingStrategy`, strategy required " + dispatchOptions.AddressTag.GetType().Name);
-                }
-
+            if (routingStrategy == null)
+            {
+                throw new Exception($"The MSMQ transport only supports the `DirectRoutingStrategy`, strategy required {dispatchOptions.AddressTag.GetType().Name}");
+            }
+            
             var destination = routingStrategy.Destination;
-
             var destinationAddress = MsmqAddress.Parse(destination);
+
+            if (IsCombiningTimeToBeReceivedWithTransactions(context, dispatchOptions))
+            {
+                throw new Exception($"Failed to send message to address: {destinationAddress.Queue}@{destinationAddress.Machine}. Sending messages with a custom TimeToBeReceived is not supported on transactional MSMQ.");
+            }
+
             try
             {
                 using (var q = new MessageQueue(destinationAddress.FullPath, false, settings.UseConnectionCache, QueueAccessMode.Send))
+                using (var toSend = MsmqUtilities.Convert(message, dispatchOptions))
                 {
-                    using (var toSend = MsmqUtilities.Convert(message, dispatchOptions))
+                    toSend.UseDeadLetterQueue = settings.UseDeadLetterQueue;
+                    toSend.UseJournalQueue = settings.UseJournalQueue;
+                    toSend.TimeToReachQueue = settings.TimeToReachQueue;
+
+                    string replyToAddress;
+
+                    if (message.Headers.TryGetValue(Headers.ReplyToAddress, out replyToAddress))
                     {
-                        toSend.UseDeadLetterQueue = settings.UseDeadLetterQueue;
-                        toSend.UseJournalQueue = settings.UseJournalQueue;
-                        toSend.TimeToReachQueue = settings.TimeToReachQueue;
-
-                        string replyToAddress;
-
-                        if (message.Headers.TryGetValue(Headers.ReplyToAddress, out replyToAddress))
-                        {
-                            toSend.ResponseQueue = new MessageQueue(MsmqAddress.Parse(replyToAddress).FullPath);
-                        }
-
-                        var label = GetLabel(message);
-
-                        if (dispatchOptions.RequiredDispatchConsistency == DispatchConsistency.Isolated)
-                        {
-                            q.Send(toSend, label, GetIsolatedTransactionType());
-                            return;
-                        }
-
-                        MessageQueueTransaction activeTransaction;
-                        if (context.TryGet(out activeTransaction))
-                        {
-                            q.Send(toSend, label, activeTransaction);
-                            return;
-                        }
-
-                        q.Send(toSend, label, GetTransactionTypeForSend());
+                        toSend.ResponseQueue = new MessageQueue(MsmqAddress.Parse(replyToAddress).FullPath);
                     }
+
+                    var label = GetLabel(message);
+
+                    if (dispatchOptions.RequiredDispatchConsistency == DispatchConsistency.Isolated)
+                    {
+                        q.Send(toSend, label, GetIsolatedTransactionType());
+                        return;
+                    }
+
+                    MessageQueueTransaction activeTransaction;
+                    if (context.TryGet(out activeTransaction))
+                    {
+                        q.Send(toSend, label, activeTransaction);
+                        return;
+                    }
+                    
+                    q.Send(toSend, label, GetTransactionTypeForSend());
                 }
             }
             catch (MessageQueueException ex)
@@ -110,6 +115,34 @@ namespace NServiceBus.Transports.Msmq
             {
                 ThrowFailedToSendException(destination, ex);
             }
+        }
+
+        bool IsCombiningTimeToBeReceivedWithTransactions(ReadOnlyContextBag context, DispatchOptions dispatchOptions)
+        {
+            if (!settings.UseTransactionalQueues)
+            {
+                return false;
+            }
+
+            if (dispatchOptions.RequiredDispatchConsistency == DispatchConsistency.Isolated)
+            {
+                return false;
+            }
+
+            DiscardIfNotReceivedBefore discardIfNotReceivedBefore;
+            var timeToBeReceivedRequested = dispatchOptions.DeliveryConstraints.TryGet(out discardIfNotReceivedBefore) && discardIfNotReceivedBefore.MaxTime < MessageQueue.InfiniteTimeout;
+
+            if (!timeToBeReceivedRequested)
+            {
+                return false;
+            }
+
+            MessageQueueTransaction activeReceiveTransaction;
+            var hasActiveReceiveTransaction = context.TryGet(out activeReceiveTransaction);
+
+            var isWrappedByTransactionScope = Transaction.Current != null;
+            
+            return hasActiveReceiveTransaction || isWrappedByTransactionScope;
         }
 
         MessageQueueTransactionType GetIsolatedTransactionType()

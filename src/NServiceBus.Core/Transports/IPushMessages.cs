@@ -11,7 +11,7 @@
         /// <summary>
         /// Initializes the <see cref="IPushMessages"/>.
         /// </summary>
-        void Init(Func<PushContext, Task> pipe, PushSettings settings);
+        Task Init(Func<PushContext, Task> pipe, CriticalError criticalError, PushSettings settings);
 
         /// <summary>
         /// Starts pushing message/>.
@@ -21,6 +21,6 @@
         /// <summary>
         /// Stops pushing messages.
         /// </summary>
-        Task StopAsync();
+        Task Stop();
     }
 }

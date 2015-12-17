@@ -16,7 +16,7 @@
         {
             var context = await Scenario.Define<Context>()
                 .WithEndpoint<EndpointWithAuditOn>(b => b
-                    .When(bus => bus.SendLocalAsync(new MessageToBeAudited()))
+                    .When(bus => bus.SendLocal(new MessageToBeAudited()))
                     .DoNotFailOnErrorMessages())
                 .WithEndpoint<AuditSpyEndpoint>()
                 .Done(c => c.MessageAudited)
@@ -44,9 +44,9 @@
                     .AuditTo<AuditSpyEndpoint>();
             }
 
-            class BlowUpAfterDispatchBehavior : Behavior<BatchDispatchContext>
+            class BlowUpAfterDispatchBehavior : Behavior<IBatchDispatchContext>
             {
-                public async override Task Invoke(BatchDispatchContext context, Func<Task> next)
+                public async override Task Invoke(IBatchDispatchContext context, Func<Task> next)
                 {
                     if (!context.Operations.Any(op => op.Message.Headers[Headers.EnclosedMessageTypes].Contains(typeof(MessageToBeAudited).Name)))
                     {

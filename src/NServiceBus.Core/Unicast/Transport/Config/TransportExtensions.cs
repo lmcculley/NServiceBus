@@ -2,9 +2,9 @@ namespace NServiceBus
 {
     using System;
     using NServiceBus.Configuration.AdvanceExtensibility;
+    using NServiceBus.Routing;
     using NServiceBus.Settings;
     using NServiceBus.Transports;
-    using NServiceBus.Unicast.Transport;
 
     /// <summary>
     /// This class provides implementers of persisters with an extension mechanism for custom settings via extension methods.
@@ -46,6 +46,15 @@ namespace NServiceBus
             base.ConnectionString(connectionString);
             return this;
         }
+
+        /// <summary>
+        /// Configures the transport to use a specific transaction mode.
+        /// </summary>
+        public new TransportExtensions<T> Transactions(TransportTransactionMode transportTransactionMode)
+        {
+            base.Transactions(transportTransactionMode);
+            return this;
+        }
     }
 
     /// <summary>
@@ -78,7 +87,7 @@ namespace NServiceBus
         /// </summary>
         public TransportExtensions ConnectionStringName(string name)
         {
-            Guard.AgainstNullAndEmpty("name", name);
+            Guard.AgainstNullAndEmpty(nameof(name), name);
             Settings.Set<TransportConnectionString>(new TransportConnectionString(name));
             return this;
         }
@@ -88,8 +97,18 @@ namespace NServiceBus
         /// </summary>
         public TransportExtensions ConnectionString(Func<string> connectionString)
         {
-            Guard.AgainstNull("connectionString", connectionString);
+            Guard.AgainstNull(nameof(connectionString), connectionString);
             Settings.Set<TransportConnectionString>(new TransportConnectionString(connectionString));
+            return this;
+        }
+
+
+        /// <summary>
+        /// Configures the transport to use a explicit transaction mode.
+        /// </summary>
+        public TransportExtensions Transactions(TransportTransactionMode transportTransactionMode)
+        {
+            Settings.Set<TransportTransactionMode>(transportTransactionMode);
             return this;
         }
 
@@ -97,7 +116,7 @@ namespace NServiceBus
         /// Adds a rule for translating endpoint instance names to physical addresses in direct routing.
         /// </summary>
         /// <param name="rule">The rule.</param>
-        public TransportExtensions AddAddressTranslationRule(Func<EndpointInstanceName, string> rule)
+        public TransportExtensions AddAddressTranslationRule(Func<EndpointInstance, string> rule)
         {
             Settings.Get<TransportAddresses>().AddRule(rule);
             return this;
@@ -108,7 +127,7 @@ namespace NServiceBus
         /// </summary>
         /// <param name="endpointInstance">Name of the instance for which the exception is created.</param>
         /// <param name="transportAddress">Transport address of that instance.</param>
-        public TransportExtensions AddAddressTranslationException(EndpointInstanceName endpointInstance, string transportAddress)
+        public TransportExtensions AddAddressTranslationException(EndpointInstance endpointInstance, string transportAddress)
         {
             Settings.Get<TransportAddresses>().AddSpecialCase(endpointInstance, transportAddress);
             return this;
@@ -123,7 +142,10 @@ namespace NServiceBus
         /// <summary>
         /// Gets the transport connectionstring.
         /// </summary>
-        [ObsoleteEx(TreatAsErrorFromVersion = "6", RemoveInVersion = "7", Message = "Not available any more.")]
+        [ObsoleteEx(
+            TreatAsErrorFromVersion = "6", 
+            RemoveInVersion = "7", 
+            Message = "Not available any more.")]
         public static string TransportConnectionString(this Configure config)
         {
            throw new NotImplementedException();

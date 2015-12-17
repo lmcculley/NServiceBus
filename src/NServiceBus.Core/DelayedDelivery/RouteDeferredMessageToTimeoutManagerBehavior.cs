@@ -5,14 +5,13 @@ namespace NServiceBus
     using System.Linq;
     using System.Threading.Tasks;
     using DelayedDelivery;
-    using DelayedDelivery.TimeoutManager;
     using DeliveryConstraints;
     using Performance.TimeToBeReceived;
     using Pipeline;
     using Routing;
     using TransportDispatch;
 
-    class RouteDeferredMessageToTimeoutManagerBehavior : Behavior<RoutingContext>
+    class RouteDeferredMessageToTimeoutManagerBehavior : Behavior<IRoutingContext>
     {
         public RouteDeferredMessageToTimeoutManagerBehavior(string timeoutManagerAddress)
         {
@@ -20,7 +19,7 @@ namespace NServiceBus
         }
 
 
-        public override Task Invoke(RoutingContext context, Func<Task> next)
+        public override Task Invoke(IRoutingContext context, Func<Task> next)
         {
             DelayedDeliveryConstraint constraint;
 

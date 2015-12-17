@@ -5,7 +5,9 @@
     using System.Linq;
     using System.Reflection;
     using AcceptanceTesting.Support;
+    using NServiceBus.DelayedDelivery;
     using NServiceBus.Hosting.Helpers;
+    using NServiceBus.Settings;
     using NServiceBus.Transports;
 
     public class AllTransports : ScenarioDescriptor
@@ -39,7 +41,7 @@
     {
         public AllDtcTransports()
         {
-            AllTransportsFilter.Run(t => t.GetTransactionSupport() != TransactionSupport.Distributed, Remove);
+            AllTransportsFilter.Run(t => t.GetSupportedTransactionMode() != TransportTransactionMode.TransactionScope, Remove);
         }
     }
 
@@ -47,15 +49,7 @@
     {
         public AllNativeMultiQueueTransactionTransports()
         {
-            AllTransportsFilter.Run(t => t.GetTransactionSupport() < TransactionSupport.MultiQueue, Remove);
-        }
-    }
-
-    public class AllBrokerTransports : AllTransports
-    {
-        public AllBrokerTransports()
-        {
-            AllTransportsFilter.Run(t => !t.HasNativePubSubSupport, Remove);
+            AllTransportsFilter.Run(t => t.GetSupportedTransactionMode() < TransportTransactionMode.SendsAtomicWithReceive, Remove);
         }
     }
 
@@ -63,7 +57,7 @@
     {
         public AllTransportsWithCentralizedPubSubSupport()
         {
-            AllTransportsFilter.Run(t => !t.HasSupportForCentralizedPubSub, Remove);
+            AllTransportsFilter.Run(t => t.GetOutboundRoutingPolicy(new SettingsHolder()).Publishes == OutboundRoutingType.Unicast, Remove);
         }
     }
 
@@ -71,7 +65,15 @@
     {
         public AllTransportsWithMessageDrivenPubSub()
         {
-            AllTransportsFilter.Run(t => t.HasNativePubSubSupport, Remove);
+            AllTransportsFilter.Run(t => t.GetOutboundRoutingPolicy(new SettingsHolder()).Publishes == OutboundRoutingType.Multicast, Remove);
+        }
+    }
+
+    public class AllTransportsWithoutNativeDeferral : AllTransports
+    {
+        public AllTransportsWithoutNativeDeferral()
+        {
+            AllTransportsFilter.Run(t => t.GetSupportedDeliveryConstraints().Any(c => typeof(DelayedDeliveryConstraint).IsAssignableFrom(c)), Remove);
         }
     }
 

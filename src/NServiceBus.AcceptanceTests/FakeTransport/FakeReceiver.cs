@@ -10,8 +10,10 @@ namespace NServiceBus.AcceptanceTests.FakeTransport
         CriticalError criticalError;
         Exception throwCritical;
 
-        public void Init(Func<PushContext, Task> pipe, PushSettings settings)
+        public Task Init(Func<PushContext, Task> pipe, CriticalError criticalError, PushSettings settings)
         {
+            this.criticalError = criticalError;
+            return Task.FromResult(0);
         }
 
         public void Start(PushRuntimeSettings limitations)
@@ -22,14 +24,13 @@ namespace NServiceBus.AcceptanceTests.FakeTransport
             }
         }
 
-        public Task StopAsync()
+        public Task Stop()
         {
             return Task.FromResult(0);
         }
 
-        public FakeReceiver(CriticalError criticalError, Exception throwCritical)
+        public FakeReceiver(Exception throwCritical)
         {
-            this.criticalError = criticalError;
             this.throwCritical = throwCritical;
         }
     }

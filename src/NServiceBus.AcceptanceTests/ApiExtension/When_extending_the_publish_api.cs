@@ -25,12 +25,12 @@
 
                             options.GetExtensions().Set(new Publisher.PublishExtensionBehavior.Context { SomeProperty = "ItWorks" });
 
-                            return bus.PublishAsync(new MyEvent(), options);
+                            return bus.Publish(new MyEvent(), options);
                         })
                      )
                     .WithEndpoint<Subscriber1>(b => b.When(async (bus, context) =>
                         {
-                            await bus.SubscribeAsync<MyEvent>();
+                            await bus.Subscribe<MyEvent>();
 
                             if (context.HasNativePubSubSupport)
                                 context.Subscriber1Subscribed = true;
@@ -62,13 +62,13 @@
                 });
             }
 
-            public class PublishExtensionBehavior : Behavior<OutgoingLogicalMessageContext>
+            public class PublishExtensionBehavior : Behavior<IOutgoingLogicalMessageContext>
             {
-                public override Task Invoke(OutgoingLogicalMessageContext context, Func<Task> next)
+                public override Task Invoke(IOutgoingLogicalMessageContext context, Func<Task> next)
                 {
                     Context data;
 
-                    if (context.TryGet(out data))
+                    if (context.Extensions.TryGet(out data))
                     {
                         Assert.AreEqual("ItWorks", data.SomeProperty);
                     }

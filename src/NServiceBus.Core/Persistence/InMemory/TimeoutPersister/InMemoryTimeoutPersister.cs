@@ -1,4 +1,4 @@
-namespace NServiceBus.InMemory.TimeoutPersister
+namespace NServiceBus
 {
     using System;
     using System.Collections.Generic;
@@ -11,7 +11,6 @@ namespace NServiceBus.InMemory.TimeoutPersister
     class InMemoryTimeoutPersister : IPersistTimeouts, IQueryTimeouts, IDisposable
     {
         public void Dispose()
-
         {
         }
 
@@ -28,7 +27,7 @@ namespace NServiceBus.InMemory.TimeoutPersister
                 readerWriterLock.ExitWriteLock();
             }
 
-            return Task.FromResult(0);
+            return TaskEx.Completed;
         }
 
         public Task<TimeoutData> Peek(string timeoutId, ContextBag context)
@@ -89,7 +88,7 @@ namespace NServiceBus.InMemory.TimeoutPersister
                 readerWriterLock.ExitWriteLock();
             }
 
-            return Task.FromResult(0);
+            return TaskEx.Completed;
         }
 
         public Task<TimeoutsChunk> GetNextChunk(DateTime startSlice)

@@ -6,15 +6,15 @@
     using Pipeline;
     using Transports;
 
-    class InvokeAuditPipelineBehavior : Behavior<PhysicalMessageProcessingContext>
+    class InvokeAuditPipelineBehavior : Behavior<IIncomingPhysicalMessageContext>
     {
-        public InvokeAuditPipelineBehavior(PipelineBase<AuditContext> auditPipeline, string auditAddress)
+        public InvokeAuditPipelineBehavior(PipelineBase<IAuditContext> auditPipeline, string auditAddress)
         {
             this.auditPipeline = auditPipeline;
             this.auditAddress = auditAddress;
         }
 
-        public override async Task Invoke(PhysicalMessageProcessingContext context, Func<Task> next)
+        public override async Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
         {
             await next().ConfigureAwait(false);
 
@@ -27,7 +27,7 @@
             await auditPipeline.Invoke(auditContext).ConfigureAwait(false);
         }
 
-        PipelineBase<AuditContext> auditPipeline;
+        PipelineBase<IAuditContext> auditPipeline;
         string auditAddress;
     }
 }

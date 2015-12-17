@@ -1,22 +1,31 @@
-﻿namespace NServiceBus.Pipeline.Contexts
+﻿namespace NServiceBus
 {
-    using Transports;
+    using NServiceBus.Pipeline;
+    using NServiceBus.Pipeline.Contexts;
+    using NServiceBus.Transports;
 
     /// <summary>
     /// Context containing a physical message.
     /// </summary>
-    public class TransportReceiveContext : BehaviorContext
+    public class TransportReceiveContext : BehaviorContext, ITransportReceiveContext
     {
-        internal TransportReceiveContext(IncomingMessage receivedMessage, BehaviorContext parentContext)
+        /// <summary>
+        /// Creates a new transport receive context.
+        /// </summary>
+        /// <param name="receivedMessage">The received message.</param>
+        /// <param name="transportTransaction">The transport transaction.</param>
+        /// <param name="parentContext">The parent context.</param>
+        public TransportReceiveContext(IncomingMessage receivedMessage, TransportTransaction transportTransaction, IBehaviorContext parentContext)
             : base(parentContext)
         {
             Message = receivedMessage;
             Set(Message);
+            Set(transportTransaction);
         }
 
         /// <summary>
-        /// The physical message beeing processed.
+        /// The physical message being processed.
         /// </summary>
-        public IncomingMessage Message { get; private set; }
+        public IncomingMessage Message { get; }
     }
 }

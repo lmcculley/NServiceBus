@@ -3,8 +3,6 @@
     using NServiceBus.Config;
     using NServiceBus.DelayedDelivery;
     using NServiceBus.DeliveryConstraints;
-    using NServiceBus.Features.DelayedDelivery;
-    using NServiceBus.Pipeline;
     using NServiceBus.TransportDispatch;
 
     class DelayedDeliveryFeature : Feature
@@ -44,7 +42,7 @@
                     {
                         var pipelinesCollection = context.Settings.Get<PipelineConfiguration>();
 
-                        var dispatchPipeline = new PipelineBase<RoutingContext>(b, context.Settings, pipelinesCollection.MainPipeline);
+                        var dispatchPipeline = new PipelineBase<IRoutingContext>(b, context.Settings, pipelinesCollection.MainPipeline);
 
                         return new RequestCancelingOfDeferredMessagesFromTimeoutManager(timeoutManagerAddress, dispatchPipeline);
                     }, DependencyLifecycle.SingleInstance);

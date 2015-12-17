@@ -1,7 +1,6 @@
-namespace NServiceBus.Scheduling
+namespace NServiceBus
 {
     using System.Threading.Tasks;
-    using Messages;
 
     class ScheduledTaskMessageHandler : IHandleMessages<ScheduledTask>
     {
@@ -14,8 +13,7 @@ namespace NServiceBus.Scheduling
 
         public Task Handle(ScheduledTask message, IMessageHandlerContext context)
         {
-            scheduler.Start(message.TaskId, context);
-            return TaskEx.Completed;
+            return scheduler.Start(message.TaskId, context);
         }
     }
 }

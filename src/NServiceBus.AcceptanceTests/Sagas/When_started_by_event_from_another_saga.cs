@@ -18,7 +18,7 @@
             await Scenario.Define<Context>()
                 .WithEndpoint<SagaThatPublishesAnEvent>(b =>
                     b.When(c => c.IsEventSubscriptionReceived,
-                            bus => bus.SendLocalAsync(new StartSaga
+                            bus => bus.SendLocal(new StartSaga
                             {
                                 DataId = Guid.NewGuid()
                             }))
@@ -26,7 +26,7 @@
                 .WithEndpoint<SagaThatIsStartedByTheEvent>(
                     b => b.When(async (bus, context) =>
                     {
-                        await bus.SubscribeAsync<SomethingHappenedEvent>();
+                        await bus.Subscribe<SomethingHappenedEvent>();
 
                         if (context.HasNativePubSubSupport)
                             context.IsEventSubscriptionReceived = true;
@@ -69,10 +69,10 @@
                     Data.DataId = message.DataId;
 
                     //Publish the event, which will start the second saga
-                    await context.PublishAsync<SomethingHappenedEvent>(m => { m.DataId = message.DataId; });
+                    await context.Publish<SomethingHappenedEvent>(m => { m.DataId = message.DataId; });
 
                     //Request a timeout
-                    await RequestTimeoutAsync<Timeout1>(context, TimeSpan.FromSeconds(5));
+                    await RequestTimeout<Timeout1>(context, TimeSpan.FromSeconds(5));
                 }
 
                 public Task Timeout(Timeout1 state, IMessageHandlerContext context)
@@ -121,7 +121,7 @@
                 {
                     Data.DataId = message.DataId;
                     //Request a timeout
-                    return RequestTimeoutAsync<Saga2Timeout>(context, TimeSpan.FromSeconds(5));
+                    return RequestTimeout<Saga2Timeout>(context, TimeSpan.FromSeconds(5));
                 }
 
                 public Task Timeout(Saga2Timeout state, IMessageHandlerContext context)

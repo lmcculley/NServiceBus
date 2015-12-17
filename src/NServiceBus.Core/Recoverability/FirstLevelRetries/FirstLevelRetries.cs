@@ -4,7 +4,7 @@ namespace NServiceBus.Features
     using System.Threading;
     using System.Threading.Tasks;
     using Config;
-    using NServiceBus.Recoverability.FirstLevelRetries;
+    using NServiceBus.ConsistencyGuarantees;
     using NServiceBus.Settings;
 
     /// <summary>
@@ -17,11 +17,9 @@ namespace NServiceBus.Features
             EnableByDefault();
             Prerequisite(context => !context.Settings.GetOrDefault<bool>("Endpoint.SendOnly"), "Send only endpoints can't use FLR since it only applies to messages being received");
 
-            Prerequisite(context => context.Settings.Get<bool>("Transactions.Enabled"), "Send only endpoints can't use FLR since it requires the transport to be able to rollback");
+            Prerequisite(context => context.Settings.GetRequiredTransactionModeForReceives() != TransportTransactionMode.None, "Transactions must be enabled since FLR requires the transport to be able to rollback");
 
             Prerequisite(context => GetMaxRetries(context.Settings) > 0, "FLR was disabled in config since it's set to 0");
-
-            RegisterStartupTask<FlrStatusStorageCleaner>();
         }
 
         /// <summary>
@@ -36,6 +34,8 @@ namespace NServiceBus.Features
 
             var flrStatusStorage = new FlrStatusStorage();
             context.Container.RegisterSingleton(flrStatusStorage);
+
+            context.RegisterStartupTask(new FlrStatusStorageCleaner(flrStatusStorage));
 
             context.Pipeline.Register<FirstLevelRetriesBehavior.Registration>();
         }
@@ -59,13 +59,13 @@ namespace NServiceBus.Features
                 this.statusStorage = statusStorage;
             }
 
-            protected override Task OnStart(IBusContext context)
+            protected override Task OnStart(IBusSession session)
             {
                 timer = new Timer(ClearFlrStatusStorage, null, ClearingInterval, ClearingInterval);
                 return TaskEx.Completed;
             }
 
-            protected override Task OnStop(IBusContext context)
+            protected override Task OnStop(IBusSession session)
             {
                 timer?.Dispose();
                 return TaskEx.Completed;

@@ -11,7 +11,6 @@ namespace NServiceBus.Serializers.Json
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
     using NServiceBus.Serialization;
-    using NServiceBus.Serializers.Json.Internal;
 
     /// <summary>
     /// JSON message serializer.
@@ -29,7 +28,7 @@ namespace NServiceBus.Serializers.Json
                 {
                     DateTimeStyles = DateTimeStyles.RoundtripKind
                 },
-                new XContainerConverter()
+                new XContainerJsonConverter()
             }
         };
         Encoding encoding = Encoding.UTF8;
@@ -50,10 +49,10 @@ namespace NServiceBus.Serializers.Json
         /// <param name="stream">Stream for <paramref name="message"/> to be serialized into.</param>
         public void Serialize(object message, Stream stream)
         {
-            Guard.AgainstNull("stream", stream);
-            Guard.AgainstNull("message", message);
+            Guard.AgainstNull(nameof(stream), stream);
+            Guard.AgainstNull(nameof(message), message);
             var jsonSerializer = JsonSerializer.Create(serializerSettings);
-            jsonSerializer.Binder = new MessageSerializationBinder(messageMapper);
+            jsonSerializer.Binder = new JsonMessageSerializationBinder(messageMapper);
 
             var jsonWriter = CreateJsonWriter(stream);
             jsonSerializer.Serialize(jsonWriter, message);
@@ -68,7 +67,7 @@ namespace NServiceBus.Serializers.Json
         /// <returns>Deserialized messages.</returns>
         public object[] Deserialize(Stream stream, IList<Type> messageTypes)
         {
-            Guard.AgainstNull("stream", stream);
+            Guard.AgainstNull(nameof(stream), stream);
             var settings = serializerSettings;
 
             var mostConcreteType = messageTypes?.FirstOrDefault();
@@ -86,14 +85,14 @@ namespace NServiceBus.Serializers.Json
                         {
                             DateTimeStyles = DateTimeStyles.RoundtripKind
                         },
-                        new XContainerConverter()
+                        new XContainerJsonConverter()
                     }
                 };
             }
 
             var jsonSerializer = JsonSerializer.Create(settings);
             jsonSerializer.ContractResolver = new MessageContractResolver(messageMapper);
-            jsonSerializer.Binder = new MessageSerializationBinder(messageMapper, messageTypes);
+            jsonSerializer.Binder = new JsonMessageSerializationBinder(messageMapper, messageTypes);
 
             var reader = CreateJsonReader(stream);
             reader.Read();
@@ -167,8 +166,8 @@ namespace NServiceBus.Serializers.Json
         /// </summary>
         public object DeserializeObject(string value, Type type)
         {
-            Guard.AgainstNull("type", type);
-            Guard.AgainstNullAndEmpty("value", value);
+            Guard.AgainstNull(nameof(type), type);
+            Guard.AgainstNullAndEmpty(nameof(value), value);
             return JsonConvert.DeserializeObject(value, type);
         }
 
@@ -179,7 +178,7 @@ namespace NServiceBus.Serializers.Json
         /// <returns>The json string.</returns>
         public string SerializeObject(object value)
         {
-            Guard.AgainstNull("value", value);
+            Guard.AgainstNull(nameof(value), value);
             return JsonConvert.SerializeObject(value);
         }
         
@@ -192,7 +191,7 @@ namespace NServiceBus.Serializers.Json
             get { return encoding; }
             set
             {
-                Guard.AgainstNull("value", value);
+                Guard.AgainstNull(nameof(value), value);
                 encoding = value;
             }
         }

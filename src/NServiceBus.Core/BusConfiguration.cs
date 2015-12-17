@@ -12,12 +12,11 @@ namespace NServiceBus
     using NServiceBus.Container;
     using NServiceBus.Hosting.Helpers;
     using NServiceBus.ObjectBuilder;
-    using NServiceBus.ObjectBuilder.Autofac;
     using NServiceBus.ObjectBuilder.Common;
     using NServiceBus.Pipeline;
+    using NServiceBus.Routing;
     using NServiceBus.Settings;
     using NServiceBus.Transports;
-    using NServiceBus.Utils.Reflection;
 
     /// <summary>
     ///     Configuration used to create a bus instance.
@@ -39,11 +38,8 @@ namespace NServiceBus
             Settings.Set<QueueBindings>(new QueueBindings());
 
             Settings.SetDefault("Endpoint.SendOnly", false);
-            Settings.SetDefault("Transactions.Enabled", true);
             Settings.SetDefault("Transactions.IsolationLevel", IsolationLevel.ReadCommitted);
             Settings.SetDefault("Transactions.DefaultTimeout", TransactionManager.DefaultTimeout);
-            Settings.SetDefault("Transactions.SuppressDistributedTransactions", false);
-            Settings.SetDefault("Transactions.DoNotWrapHandlersExecutionInATransactionScope", false);
             Settings.SetDefault("DefaultSerializer", new XmlSerializer());
 
             conventionsBuilder = new ConventionsBuilder(Settings);
@@ -59,7 +55,7 @@ namespace NServiceBus
         /// </summary>
         public void RegisterComponents(Action<IConfigureComponents> registration)
         {
-            Guard.AgainstNull("registration", registration);
+            Guard.AgainstNull(nameof(registration), registration);
             registrations.Add(registration);
         }
 
@@ -68,11 +64,11 @@ namespace NServiceBus
         /// </summary>
         public void ExcludeAssemblies(params string[] assemblies)
         {
-            Guard.AgainstNull("assemblies", assemblies);
+            Guard.AgainstNull(nameof(assemblies), assemblies);
 
             if (assemblies.Any(string.IsNullOrWhiteSpace))
             {
-                throw new ArgumentException("Passed in a null or empty assembly name.", "assemblies");
+                throw new ArgumentException("Passed in a null or empty assembly name.", nameof(assemblies));
             }
             excludedAssemblies = excludedAssemblies.Union(assemblies, StringComparer.OrdinalIgnoreCase).ToList();
         }
@@ -82,10 +78,10 @@ namespace NServiceBus
         /// </summary>
         public void ExcludeTypes(params Type[] types)
         {
-            Guard.AgainstNull("types", types);
+            Guard.AgainstNull(nameof(types), types);
             if (types.Any(x => x == null))
             {
-                throw new ArgumentException("Passed in a null or empty type.", "types");
+                throw new ArgumentException("Passed in a null or empty type.", nameof(types));
             }
 
             excludedTypes = excludedTypes.Union(types).ToList();
@@ -112,7 +108,7 @@ namespace NServiceBus
         /// </summary>
         public void CustomConfigurationSource(IConfigurationSource configurationSource)
         {
-            Guard.AgainstNull("configurationSource", configurationSource);
+            Guard.AgainstNull(nameof(configurationSource), configurationSource);
             configurationSourceToUse = configurationSource;
         }
 
@@ -121,8 +117,8 @@ namespace NServiceBus
         /// </summary>
         public void EndpointName(string name)
         {
-            Guard.AgainstNullAndEmpty("name", name);
-            endpointName = new EndpointName(name);
+            Guard.AgainstNullAndEmpty(nameof(name), name);
+            endpoint = new Endpoint(name);
         }
 
         /// <summary>
@@ -133,7 +129,7 @@ namespace NServiceBus
         /// <param name="translation">The translation callback.</param>
         public void UseCustomLogicalToTransportAddressTranslation(Func<LogicalAddress, string, string> translation)
         {
-            Guard.AgainstNull("translation", translation);
+            Guard.AgainstNull(nameof(translation), translation);
             addressTranslation = translation;
         }
 
@@ -162,8 +158,8 @@ namespace NServiceBus
         /// <param name="definitionType">The type of the <see cref="ContainerDefinition"/>.</param>
         public void UseContainer(Type definitionType)
         {
-            Guard.AgainstNull("definitionType", definitionType);
-            Guard.TypeHasDefaultConstructor(definitionType, "definitionType");
+            Guard.AgainstNull(nameof(definitionType), definitionType);
+            Guard.TypeHasDefaultConstructor(definitionType, nameof(definitionType));
 
             UseContainer(definitionType.Construct<ContainerDefinition>().CreateContainer(Settings));
         }
@@ -174,7 +170,7 @@ namespace NServiceBus
         /// <param name="builder">The instance to use.</param>
         public void UseContainer(IContainer builder)
         {
-            Guard.AgainstNull("builder", builder);
+            Guard.AgainstNull(nameof(builder), builder);
             customBuilder = builder;
         }
 
@@ -194,7 +190,7 @@ namespace NServiceBus
         /// <param name="address">The public address.</param>
         public void OverridePublicReturnAddress(string address)
         {
-            Guard.AgainstNullAndEmpty("address", address);
+            Guard.AgainstNullAndEmpty(nameof(address), address);
             publicReturnAddress = address;
         }
 
@@ -238,7 +234,7 @@ namespace NServiceBus
             var endpointHelper = new EndpointHelper(new StackTrace());
 
             Settings.SetDefault("EndpointVersion", endpointHelper.GetEndpointVersion());
-            Settings.SetDefault<EndpointName>(endpointName ?? new EndpointName(endpointHelper.GetDefaultEndpointName()));
+            Settings.SetDefault<Endpoint>(endpoint ?? new Endpoint(endpointHelper.GetDefaultEndpointName()));
             if (addressTranslation != null)
             {
                 Settings.Set("LogicalToTransportAddressTranslation", addressTranslation);
@@ -268,10 +264,17 @@ namespace NServiceBus
         {
             ForAllTypes<T>(types, t =>
             {
+                if (!HasDefaultConstructor(t))
+                {
+                    throw new Exception($"Unable to create the type '{t.Name}'. Types implementing '{typeof(T).Name}' must have a public parameterless (default) constructor.");
+                }
+
                 var instanceToInvoke = (T)Activator.CreateInstance(t);
                 action(instanceToInvoke);
             });
         }
+
+        static bool HasDefaultConstructor(Type type) => type.GetConstructor(Type.EmptyTypes) != null;
 
         List<Type> GetAllowedTypes(string path)
         {
@@ -302,10 +305,10 @@ namespace NServiceBus
         ConventionsBuilder conventionsBuilder;
         List<Action<IConfigureComponents>> registrations = new List<Action<IConfigureComponents>>();
         IContainer customBuilder;
-        EndpointName endpointName;
+        Endpoint endpoint;
         Func<LogicalAddress, string, string> addressTranslation;
         List<IWantToRunWhenBusStartsAndStops> startables = new List<IWantToRunWhenBusStartsAndStops>();
-        IList<Type> scannedTypes;
+        List<Type> scannedTypes;
         List<Type> excludedTypes = new List<Type>();
         List<string> excludedAssemblies = new List<string>();
         bool scanAssembliesInNestedDirectories;

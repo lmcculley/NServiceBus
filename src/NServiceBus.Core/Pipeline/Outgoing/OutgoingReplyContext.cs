@@ -1,30 +1,34 @@
-﻿namespace NServiceBus.OutgoingPipeline
+﻿namespace NServiceBus
 {
+    using System.Collections.Generic;
+    using NServiceBus.OutgoingPipeline;
     using NServiceBus.Pipeline;
-    using ReplyOptions = NServiceBus.ReplyOptions;
 
     /// <summary>
     /// Pipeline context for reply operations.
     /// </summary>
-    public class OutgoingReplyContext : OutgoingContext
+    public class OutgoingReplyContext : OutgoingContext, IOutgoingReplyContext
     {
         /// <summary>
-        /// Initializes a new instance of <see cref="OutgoingReplyContext" />.
+        /// Creates a new instance of an outgoing reply context.
         /// </summary>
-        public OutgoingReplyContext(OutgoingLogicalMessage message, ReplyOptions options, BehaviorContext parentContext)
-            : base(parentContext)
+        /// <param name="message">The reply message.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="parentContext">The parent context.</param>
+        public OutgoingReplyContext(OutgoingLogicalMessage message, ReplyOptions options, IBehaviorContext parentContext)
+            : base(options.MessageId, new Dictionary<string, string>(options.OutgoingHeaders), parentContext)
         {
             Message = message;
             Guard.AgainstNull(nameof(parentContext), parentContext);
             Guard.AgainstNull(nameof(message), message);
             Guard.AgainstNull(nameof(options), options);
 
-            parentContext.Merge(options.Context);
+            parentContext.Extensions.Merge(options.Context);
         }
 
         /// <summary>
         /// The reply message.
         /// </summary>
-        public OutgoingLogicalMessage Message { get; private set; }
+        public OutgoingLogicalMessage Message { get; }
     }
 }

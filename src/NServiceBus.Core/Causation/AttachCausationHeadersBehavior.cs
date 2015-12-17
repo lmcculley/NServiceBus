@@ -6,18 +6,17 @@ namespace NServiceBus
     using NServiceBus.Transports;
     using OutgoingPipeline;
     using Pipeline;
-    using TransportDispatch;
 
-    class AttachCausationHeadersBehavior : Behavior<OutgoingPhysicalMessageContext>
+    class AttachCausationHeadersBehavior : Behavior<IOutgoingPhysicalMessageContext>
     {
-        public override Task Invoke(OutgoingPhysicalMessageContext context, Func<Task> next)
+        public override Task Invoke(IOutgoingPhysicalMessageContext context, Func<Task> next)
         {
             ApplyHeaders(context);
 
             return next();
         }
 
-        void ApplyHeaders(OutgoingPhysicalMessageContext context)
+        void ApplyHeaders(IOutgoingPhysicalMessageContext context)
         {
             var conversationId = CombGuid.Generate().ToString();
 
@@ -25,7 +24,7 @@ namespace NServiceBus
 
             if (context.TryGetIncomingPhysicalMessage(out incomingMessage))
             {
-                context.SetHeader(Headers.RelatedTo, incomingMessage.MessageId);
+                context.Headers[Headers.RelatedTo] = incomingMessage.MessageId;
 
                 string conversationIdFromCurrentMessageContext;
                 if (incomingMessage.Headers.TryGetValue(Headers.ConversationId, out conversationIdFromCurrentMessageContext))
@@ -34,7 +33,7 @@ namespace NServiceBus
                 }
             }
 
-            context.SetHeader(Headers.ConversationId, conversationId);
+            context.Headers[Headers.ConversationId] = conversationId;
         }
     }
 }

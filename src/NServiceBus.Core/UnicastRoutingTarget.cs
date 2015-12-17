@@ -1,6 +1,7 @@
 ﻿namespace NServiceBus
 {
     using System;
+    using NServiceBus.Routing;
 
     /// <summary>
     /// Represents a reference to an endpoint instance (which is either its name or a transport address).
@@ -10,19 +11,19 @@
         /// <summary>
         /// Creates a enw destination to a known endpoint.
         /// </summary>
-        /// <param name="instanceName">Instance name.</param>
-        public static UnicastRoutingTarget ToEndpointInstance(EndpointInstanceName instanceName)
+        /// <param name="instance">Instance name.</param>
+        public static UnicastRoutingTarget ToEndpointInstance(EndpointInstance instance)
         {
-            Guard.AgainstNull(nameof(instanceName), instanceName);
-            return new UnicastRoutingTarget(instanceName.EndpointName, instanceName, null);
+            Guard.AgainstNull(nameof(instance), instance);
+            return new UnicastRoutingTarget(instance.Endpoint, instance, null);
         }
 
         /// <summary>
-        /// Creates a new destination to an anounymous instance of a known endpoint.
+        /// Creates a new destination to an anonymous instance of a known endpoint.
         /// </summary>
         /// <param name="endpoint">Endpoint name.</param>
         /// <param name="transportAddress">Instance transport address.</param>
-        public static UnicastRoutingTarget ToAnonymousInstance(EndpointName endpoint, string transportAddress)
+        public static UnicastRoutingTarget ToAnonymousInstance(Endpoint endpoint, string transportAddress)
         {
             Guard.AgainstNull(nameof(endpoint), transportAddress);
             Guard.AgainstNull(nameof(transportAddress), transportAddress);
@@ -39,27 +40,27 @@
             return new UnicastRoutingTarget(null, null, transportAddress);
         }
 
-        UnicastRoutingTarget(EndpointName endpointName, EndpointInstanceName instanceName, string transportAddress)
+        UnicastRoutingTarget(Endpoint endpoint, EndpointInstance instance, string transportAddress)
         {
-            EndpointName = endpointName;
-            InstanceName = instanceName;
+            Endpoint = endpoint;
+            Instance = instance;
             TransportAddress = transportAddress;
         }
 
-        internal string Resolve(Func<EndpointInstanceName, string> transportAddressResolver)
+        internal string Resolve(Func<EndpointInstance, string> transportAddressResolver)
         {
-            return TransportAddress ?? transportAddressResolver(InstanceName);
+            return TransportAddress ?? transportAddressResolver(Instance);
         }
 
         /// <summary>
         /// Endpoint name, if specified.
         /// </summary>
-        public EndpointName EndpointName { get; }
+        public Endpoint Endpoint { get; }
 
         /// <summary>
         /// Endpoint instance name, if specified.
         /// </summary>
-        public EndpointInstanceName InstanceName { get; }
+        public EndpointInstance Instance { get; }
 
         /// <summary>
         /// Endpoint instance transport address, if specified.
@@ -68,7 +69,7 @@
 
         bool Equals(UnicastRoutingTarget other)
         {
-            return Equals(EndpointName, other.EndpointName) && Equals(InstanceName, other.InstanceName) && string.Equals(TransportAddress, other.TransportAddress);
+            return Equals(Endpoint, other.Endpoint) && Equals(Instance, other.Instance) && string.Equals(TransportAddress, other.TransportAddress);
         }
 
         /// <summary>
@@ -101,9 +102,9 @@
         {
             unchecked
             {
-                var hashCode = (EndpointName != null ? EndpointName.GetHashCode() : 0);
-                hashCode = (hashCode*397) ^ (InstanceName != null ? InstanceName.GetHashCode() : 0);
-                hashCode = (hashCode*397) ^ (TransportAddress != null ? TransportAddress.GetHashCode() : 0);
+                var hashCode = Endpoint?.GetHashCode() ?? 0;
+                hashCode = (hashCode*397) ^ (Instance?.GetHashCode() ?? 0);
+                hashCode = (hashCode*397) ^ (TransportAddress?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

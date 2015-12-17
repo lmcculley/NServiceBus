@@ -7,7 +7,6 @@ namespace NServiceBus.MessageInterfaces.MessageMapper.Reflection
     using System.Linq;
     using System.Reflection;
     using System.Runtime.Serialization;
-    using Utils.Reflection;
 
     /// <summary>
     /// Uses reflection to map between interfaces and their generated concrete implementations.
@@ -147,7 +146,7 @@ namespace NServiceBus.MessageInterfaces.MessageMapper.Reflection
         /// </summary>
         public Type GetMappedTypeFor(Type t)
         {
-            Guard.AgainstNull("t", t);
+            Guard.AgainstNull(nameof(t), t);
             RuntimeTypeHandle typeHandle;
             if (t.IsClass)
             {
@@ -177,7 +176,7 @@ namespace NServiceBus.MessageInterfaces.MessageMapper.Reflection
         /// </summary>
         public Type GetMappedTypeFor(string typeName)
         {
-            Guard.AgainstNullAndEmpty("typeName", typeName);
+            Guard.AgainstNullAndEmpty(nameof(typeName), typeName);
             var name = typeName;
             if (typeName.EndsWith(ConcreteProxyCreator.SUFFIX, StringComparison.Ordinal))
             {

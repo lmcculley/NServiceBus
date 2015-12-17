@@ -6,23 +6,22 @@
     using NServiceBus.Pipeline.OutgoingPipeline;
     using Performance.TimeToBeReceived;
     using Pipeline;
-    using TransportDispatch;
 
-    class ApplyTimeToBeReceivedBehavior : Behavior<OutgoingLogicalMessageContext>
+    class ApplyTimeToBeReceivedBehavior : Behavior<IOutgoingLogicalMessageContext>
     {
         public ApplyTimeToBeReceivedBehavior(TimeToBeReceivedMappings timeToBeReceivedMappings)
         {
             this.timeToBeReceivedMappings = timeToBeReceivedMappings;
         }
         
-        public override Task Invoke(OutgoingLogicalMessageContext context, Func<Task> next)
+        public override Task Invoke(IOutgoingLogicalMessageContext context, Func<Task> next)
         {
             TimeSpan timeToBeReceived;
 
             if (timeToBeReceivedMappings.TryGetTimeToBeReceived(context.Message.MessageType, out timeToBeReceived))
             {
                 context.AddDeliveryConstraint(new DiscardIfNotReceivedBefore(timeToBeReceived));
-                context.SetHeader(Headers.TimeToBeReceived, timeToBeReceived.ToString());
+                context.Headers[Headers.TimeToBeReceived] = timeToBeReceived.ToString();
             }
 
             return next();

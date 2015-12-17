@@ -28,7 +28,6 @@
                 s.SetDefault<DistributionPolicy>(new DistributionPolicy());
                 s.SetDefault<TransportAddresses>(new TransportAddresses());
             });
-            RegisterStartupTask<SubscriptionStoreRouteInformationProvider>();
         }
 
         protected internal override void Setup(FeatureConfigurationContext context)
@@ -61,7 +60,7 @@
 
                 foreach (MessageEndpointMapping m in legacyRoutingConfig)
                 {
-                    m.Configure(routeTable.AddStatic);
+                    m.Configure(routeTable.RouteToAddress);
                     m.Configure((type, s) =>
                     {
                         var typesEnclosed = knownMessageTypes.Where(t => t.IsAssignableFrom(type));
@@ -73,10 +72,11 @@
                 }
             }
 
+            context.RegisterStartupTask(b => new SubscriptionStoreRouteInformationProvider(context.Settings, b));
             var outboundRoutingPolicy = transportDefinition.GetOutboundRoutingPolicy(context.Settings);
             context.Pipeline.Register("UnicastSendRouterConnector", typeof(UnicastSendRouterConnector), "Determines how the message being sent should be routed");
             context.Pipeline.Register("UnicastReplyRouterConnector", typeof(UnicastReplyRouterConnector), "Determines how replies should be routed");
-            if (outboundRoutingPolicy.Publishes == OutboundRoutingType.DirectSend)
+            if (outboundRoutingPolicy.Publishes == OutboundRoutingType.Unicast)
             {
                 context.Pipeline.Register("UnicastPublishRouterConnector", typeof(UnicastPublishRouterConnector), "Determines how the published messages should be routed");
             }
@@ -91,7 +91,7 @@
 
                 context.Container.ConfigureComponent(b => new ApplyReplyToAddressBehavior(ReplyToAddress(b)), DependencyLifecycle.SingleInstance);
 
-                if (outboundRoutingPolicy.Publishes == OutboundRoutingType.DirectSend)
+                if (outboundRoutingPolicy.Publishes == OutboundRoutingType.Unicast)
                 {
                     context.Container.ConfigureComponent<SubscriptionRouter>(DependencyLifecycle.SingleInstance);
 
@@ -140,10 +140,10 @@
                 this.builder = builder;
             }
 
-            protected override Task OnStart(IBusContext context)
+            protected override Task OnStart(IBusSession session)
             {
                 var transportDefinition = settings.Get<TransportDefinition>();
-                if (transportDefinition.GetOutboundRoutingPolicy(settings).Publishes == OutboundRoutingType.DirectSend) //Publish via send
+                if (transportDefinition.GetOutboundRoutingPolicy(settings).Publishes == OutboundRoutingType.Unicast) //Publish via send
                 {
                     var subscriptions = builder.BuildAll<ISubscriptionStorage>().FirstOrDefault();
                     if (subscriptions != null)
@@ -154,21 +154,25 @@
                 return TaskEx.Completed;
             }
 
-            private static IEnumerable<IUnicastRoute> QuerySubscriptionStore(ISubscriptionStorage subscriptions, Type messageType, ContextBag contextBag)
+            protected override Task OnStop(IBusSession session)
             {
-                if (!(contextBag is OutgoingPublishContext))
+                return TaskEx.Completed;
+            }
+
+            static async Task<IEnumerable<IUnicastRoute>> QuerySubscriptionStore(ISubscriptionStorage subscriptions, List<Type> types, ContextBag contextBag)
+            {
+                if (!(contextBag is IOutgoingPublishContext))
                 {
-                    return Enumerable.Empty<UnicastRoute>();
+                    return new List<IUnicastRoute>();
                 }
-                var messageTypes = new[]
-                {
-                    new MessageType(messageType)
-                };
-                var subscribers = subscriptions.GetSubscriberAddressesForMessage(messageTypes, contextBag).GetAwaiter().GetResult();
+
+                var messageTypes = types.Select(t => new MessageType(t)).ToArray();
+                
+                var subscribers = await subscriptions.GetSubscriberAddressesForMessage(messageTypes, contextBag).ConfigureAwait(false);
                 return subscribers.Select(s => new SubscriberDestination(s));
             }
 
-            private class SubscriberDestination : IUnicastRoute
+            class SubscriberDestination : IUnicastRoute
             {
                 UnicastRoutingTarget target;
 
@@ -184,7 +188,7 @@
                     }
                 }
 
-                public IEnumerable<UnicastRoutingTarget> Resolve(Func<EndpointName, IEnumerable<EndpointInstanceName>> instanceResolver)
+                public IEnumerable<UnicastRoutingTarget> Resolve(Func<Endpoint, IEnumerable<EndpointInstance>> instanceResolver)
                 {
                     yield return target;
                 }

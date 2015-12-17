@@ -1,10 +1,10 @@
-﻿namespace NServiceBus.Persistence
+﻿namespace NServiceBus
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using NServiceBus.Persistence;
     using NServiceBus.Settings;
-    using NServiceBus.Utils.Reflection;
 
     class PersistenceStorageMerger
     {

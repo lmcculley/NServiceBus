@@ -7,41 +7,61 @@ namespace NServiceBus.Faults
     /// <summary>
     /// Errors notifications.
     /// </summary>
-    public class ErrorsNotifications : IDisposable
+    public class ErrorsNotifications
     {
         /// <summary>
         /// Notification when a message is moved to the error queue.
         /// </summary>
-        public IObservable<FailedMessage> MessageSentToErrorQueue => erroneousMessageList;
+        public event EventHandler<FailedMessage> MessageSentToErrorQueue;
 
         /// <summary>
         /// Notification when a message fails a first level retry.
         /// </summary>
-        public IObservable<FirstLevelRetry> MessageHasFailedAFirstLevelRetryAttempt => firstLevelRetryList;
+        public event EventHandler<FirstLevelRetry> MessageHasFailedAFirstLevelRetryAttempt;
 
         /// <summary>
         /// Notification when a message is sent to second level retires queue.
         /// </summary>
-        public IObservable<SecondLevelRetry> MessageHasBeenSentToSecondLevelRetries => secondLevelRetryList;
-
-        void IDisposable.Dispose()
-        {
-            // Injected
-        }
+        public event EventHandler<SecondLevelRetry> MessageHasBeenSentToSecondLevelRetries;
 
         internal void InvokeMessageHasBeenSentToErrorQueue(IncomingMessage message, Exception exception)
         {
-            erroneousMessageList.OnNext(new FailedMessage(message.MessageId, new Dictionary<string, string>(message.Headers), CopyOfBody(message.Body), exception));
+            if (MessageSentToErrorQueue != null)
+            {
+                var failedMessage = new FailedMessage(
+                    message.MessageId,
+                    new Dictionary<string, string>(message.Headers),
+                    CopyOfBody(message.Body), exception);
+                MessageSentToErrorQueue?.Invoke(this, failedMessage);
+            }
         }
 
         internal void InvokeMessageHasFailedAFirstLevelRetryAttempt(int firstLevelRetryAttempt, IncomingMessage message, Exception exception)
         {
-            firstLevelRetryList.OnNext(new FirstLevelRetry(message.MessageId, new Dictionary<string, string>(message.Headers), CopyOfBody(message.Body), exception, firstLevelRetryAttempt));
+            if (MessageHasFailedAFirstLevelRetryAttempt != null)
+            {
+                var firstLevelRetry = new FirstLevelRetry(
+                    message.MessageId,
+                    new Dictionary<string, string>(message.Headers),
+                    CopyOfBody(message.Body),
+                    exception,
+                    firstLevelRetryAttempt);
+                MessageHasFailedAFirstLevelRetryAttempt?.Invoke(this, firstLevelRetry);
+            }
         }
 
         internal void InvokeMessageHasBeenSentToSecondLevelRetries(int secondLevelRetryAttempt, IncomingMessage message, Exception exception)
         {
-            secondLevelRetryList.OnNext(new SecondLevelRetry(new Dictionary<string, string>(message.Headers), CopyOfBody(message.Body), exception, secondLevelRetryAttempt));
+            if (MessageHasBeenSentToSecondLevelRetries != null)
+            {
+                var secondLevelRetry = new SecondLevelRetry(
+                    new Dictionary<string, string>(message.Headers),
+                    CopyOfBody(message.Body),
+                    exception,
+                    secondLevelRetryAttempt);
+
+                MessageHasBeenSentToSecondLevelRetries?.Invoke(this, secondLevelRetry);
+            }
         }
 
         static byte[] CopyOfBody(byte[] body)
@@ -57,9 +77,5 @@ namespace NServiceBus.Faults
 
             return copyBody;
         }
-
-        Observable<FailedMessage> erroneousMessageList = new Observable<FailedMessage>();
-        Observable<FirstLevelRetry> firstLevelRetryList = new Observable<FirstLevelRetry>();
-        Observable<SecondLevelRetry> secondLevelRetryList = new Observable<SecondLevelRetry>();
     }
 }

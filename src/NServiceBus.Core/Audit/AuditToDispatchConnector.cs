@@ -10,7 +10,7 @@ namespace NServiceBus
     using Pipeline;
     using TransportDispatch;
 
-    class AuditToDispatchConnector : StageConnector<AuditContext, RoutingContext>
+    class AuditToDispatchConnector : StageConnector<IAuditContext, IRoutingContext>
     {
         TimeSpan? timeToBeReceived;
 
@@ -19,13 +19,13 @@ namespace NServiceBus
             this.timeToBeReceived = timeToBeReceived;
         }
 
-        public override Task Invoke(AuditContext context, Func<RoutingContext, Task> next)
+        public override Task Invoke(IAuditContext context, Func<IRoutingContext, Task> next)
         {
             var message = context.Message;
 
             State state;
 
-            if (context.TryGet(out state))
+            if (context.Extensions.TryGet(out state))
             {
                 //transfer audit values to the headers of the messag to audit
                 foreach (var kvp in state.AuditValues)

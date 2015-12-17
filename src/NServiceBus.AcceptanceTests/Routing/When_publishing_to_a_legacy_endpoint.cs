@@ -6,7 +6,6 @@
     using NServiceBus.AcceptanceTests.EndpointTemplates;
     using NServiceBus.AcceptanceTests.ScenarioDescriptors;
     using NServiceBus.Features;
-    using NServiceBus.Routing;
     using NUnit.Framework;
 
     public class When_publishing_to_a_legacy_endpoint : NServiceBusAcceptanceTest
@@ -15,10 +14,10 @@
         public async Task Should_be_delivered()
         {
             await Scenario.Define<Context>()
-                .WithEndpoint<Publisher>(b => b.When(c => c.Subscribed, (bus, c) => bus.PublishAsync(new MyEvent())))
+                .WithEndpoint<Publisher>(b => b.When(c => c.Subscribed, (bus, c) => bus.Publish(new MyEvent())))
                 .WithEndpoint<LegacySubscriber>(b => b.When(async (bus, context) =>
                 {
-                    await bus.SubscribeAsync<MyEvent>();
+                    await bus.Subscribe<MyEvent>();
                 }))
                 .Done(c => c.Delivered)
                 .Repeat(r => r.For<AllTransportsWithMessageDrivenPubSub>())

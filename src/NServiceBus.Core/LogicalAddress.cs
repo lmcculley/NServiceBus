@@ -2,6 +2,7 @@
 {
     using System;
     using JetBrains.Annotations;
+    using NServiceBus.Routing;
 
     /// <summary>
     /// Represents a logical address (independent of transport).
@@ -11,25 +12,25 @@
         /// <summary>
         /// Creates new qualified logical address for the provided endpoint instance name.
         /// </summary>
-        /// <param name="endpointInstanceName">The name of the instance.</param>
+        /// <param name="endpointInstance">The name of the instance.</param>
         /// <param name="qualifier">The qualifier of this address.</param>
-        public LogicalAddress(EndpointInstanceName endpointInstanceName, [NotNull] string qualifier)
+        public LogicalAddress(EndpointInstance endpointInstance, [NotNull] string qualifier)
         {
             if (qualifier == null)
             {
-                throw new ArgumentNullException("qualifier");
+                throw new ArgumentNullException(nameof(qualifier));
             }
-            EndpointInstanceName = endpointInstanceName;
+            EndpointInstance = endpointInstance;
             Qualifier = qualifier;
         }
 
         /// <summary>
         /// Creates new root logical address for the provided endpoint instance name.
         /// </summary>
-        /// <param name="endpointInstanceName">The name of the instance.</param>
-        public LogicalAddress(EndpointInstanceName endpointInstanceName)
+        /// <param name="endpointInstance">The name of the instance.</param>
+        public LogicalAddress(EndpointInstance endpointInstance)
         {
-            EndpointInstanceName = endpointInstanceName;
+            EndpointInstance = endpointInstance;
         }
 
 
@@ -41,11 +42,11 @@
         /// <summary>
         /// Returns the instance name.
         /// </summary>
-        public EndpointInstanceName EndpointInstanceName { get; }
+        public EndpointInstance EndpointInstance { get; }
 
         bool Equals(LogicalAddress other)
         {
-            return string.Equals(Qualifier, other.Qualifier) && Equals(EndpointInstanceName, other.EndpointInstanceName);
+            return string.Equals(Qualifier, other.Qualifier) && Equals(EndpointInstance, other.EndpointInstance);
         }
 
         /// <summary>
@@ -58,9 +59,9 @@
         {
             if (Qualifier != null)
             {
-                return EndpointInstanceName + "." + Qualifier;
+                return EndpointInstance + "." + Qualifier;
             }
-            return EndpointInstanceName.ToString();
+            return EndpointInstance.ToString();
         }
 
         /// <summary>
@@ -93,7 +94,7 @@
         {
             unchecked
             {
-                return ((Qualifier?.GetHashCode() ?? 0)*397) ^ (EndpointInstanceName?.GetHashCode() ?? 0);
+                return ((Qualifier?.GetHashCode() ?? 0)*397) ^ (EndpointInstance?.GetHashCode() ?? 0);
             }
         }
 

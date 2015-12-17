@@ -4,17 +4,14 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Reflection;
     using System.Threading.Tasks;
     using NServiceBus.Logging;
     using NServiceBus.Pipeline;
     using NServiceBus.Pipeline.Contexts;
-    using NServiceBus.Scheduling.Messages;
-    using NServiceBus.Serializers;
     using NServiceBus.Transports;
     using NServiceBus.Unicast.Messages;
 
-    class DeserializeLogicalMessagesConnector : StageConnector<PhysicalMessageProcessingContext, LogicalMessageProcessingContext>
+    class DeserializeLogicalMessagesConnector : StageConnector<IIncomingPhysicalMessageContext, IIncomingLogicalMessageContext>
     {
         public DeserializeLogicalMessagesConnector(MessageDeserializerResolver deserializerResolver, LogicalMessageFactory logicalMessageFactory, MessageMetadataRegistry messageMetadataRegistry)
         {
@@ -23,7 +20,7 @@
             this.messageMetadataRegistry = messageMetadataRegistry;
         }
 
-        public override async Task Invoke(PhysicalMessageProcessingContext context, Func<LogicalMessageProcessingContext, Task> next)
+        public override async Task Invoke(IIncomingPhysicalMessageContext context, Func<IIncomingLogicalMessageContext, Task> next)
         {
             var incomingMessage = context.Message;
 
@@ -31,7 +28,7 @@
 
             foreach (var message in messages)
             {
-                await next(new LogicalMessageProcessingContext(message, context)).ConfigureAwait(false);
+                await next(new IncomingLogicalMessageContext(message, context)).ConfigureAwait(false);
             }
         }
 
@@ -93,10 +90,15 @@
                 }
             }
 
+            var messageTypes = messageMetadata.Select(metadata => metadata.MessageType).ToList();
+            var messageSerializer = deserializerResolver.Resolve(physicalMessage.Headers);
+
+            // For nested behaviors who have an expectation ContentType existing 
+            // add the default content type 
+            physicalMessage.Headers[Headers.ContentType] = messageSerializer.ContentType;
+
             using (var stream = new MemoryStream(physicalMessage.Body))
             {
-                var messageTypes = messageMetadata.Select(metadata => metadata.MessageType).ToList();
-                var messageSerializer = deserializerResolver.Resolve(physicalMessage.Headers[Headers.ContentType]);
                 return messageSerializer.Deserialize(stream, messageTypes)
                     .Select(x => logicalMessageFactory.Create(x.GetType(), x))
                     .ToList();
@@ -117,6 +119,6 @@
         LogicalMessageFactory logicalMessageFactory;
         MessageMetadataRegistry messageMetadataRegistry;
 
-        static ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        static ILog log = LogManager.GetLogger<DeserializeLogicalMessagesConnector>();
     }
 }

@@ -7,22 +7,22 @@ namespace NServiceBus
     /// <summary>
     /// Pipeline context for dispatching pending transport operations captured during message processing.
     /// </summary>
-    public class BatchDispatchContext : BehaviorContext
+    public class BatchDispatchContext : BehaviorContext, IBatchDispatchContext
     {
         /// <summary>
-        /// The captured transport operations to dispatch.
+        /// Creates a new instance of a batch dispatch context.
         /// </summary>
-        public IReadOnlyCollection<TransportOperation> Operations { get; private set; }
-
-        /// <summary>
-        /// Create a new batch dispatch context.
-        /// </summary>
-        /// <param name="operations">The operations to dispatch.</param>
-        /// <param name="parentContext">The parent receive context.</param>
-        public BatchDispatchContext(IReadOnlyCollection<TransportOperation> operations, BehaviorContext parentContext)
+        /// <param name="operations">The captured transport operations to dispatch.</param>
+        /// <param name="parentContext">The parent context.</param>
+        public BatchDispatchContext(IReadOnlyCollection<TransportOperation> operations, IBehaviorContext parentContext)
             : base(parentContext)
         {
             Operations = operations;
         }
+
+        /// <summary>
+        /// The captured transport operations to dispatch.
+        /// </summary>
+        public IReadOnlyCollection<TransportOperation> Operations { get; }
     }
 }

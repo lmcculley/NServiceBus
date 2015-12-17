@@ -1,34 +1,37 @@
-﻿namespace NServiceBus.Audit
+namespace NServiceBus
 {
-    using Transports;
-    using Pipeline;
+    using NServiceBus.Audit;
+    using NServiceBus.Pipeline;
+    using NServiceBus.Transports;
 
     /// <summary>
-    /// Provide context to behaviors on the audit pipeline.
+    /// Provides context to behaviors on the audit pipeline.
     /// </summary>
-    public class AuditContext : BehaviorContext
+    public class AuditContext : BehaviorContext, IAuditContext
     {
+        /// <summary>
+        /// Creates a new instance of the audit context.
+        /// </summary>
+        /// <param name="message">The message to be audited.</param>
+        /// <param name="auditAddress">The audit queue address.</param>
+        /// <param name="parent">The parent context.</param>
+        public AuditContext(OutgoingMessage message, string auditAddress, IBehaviorContext parent)
+            : base(parent)
+        {
+            Guard.AgainstNull(nameof(message), message);
+            Guard.AgainstNullAndEmpty(nameof(auditAddress), auditAddress);
+            Message = message;
+            AuditAddress = auditAddress;
+        }
+
         /// <summary>
         /// The message to be audited.
         /// </summary>
-        public OutgoingMessage Message { get; private set; }
+        public OutgoingMessage Message { get; }
 
         /// <summary>
         /// Address of the audit queue.
         /// </summary>
-        public string AuditAddress { get; private set; }
-
-        /// <summary>
-        /// Initializes a new instance of <see cref="AuditContext"/>.
-        /// </summary>
-        /// <param name="message">The message to be audited.</param>
-        /// <param name="auditAddress">The address of the audit queue to use.</param>
-        /// <param name="parent">The parent incoming context.</param>
-        public AuditContext(OutgoingMessage message,string auditAddress, BehaviorContext parent)
-            : base(parent)
-        {
-            Message = message;
-            AuditAddress = auditAddress;
-        }
+        public string AuditAddress { get; }
     }
 }

@@ -1,8 +1,6 @@
 namespace NServiceBus.Features
 {
-    using NServiceBus.Faults;
     using NServiceBus.Hosting;
-    using NServiceBus.Pipeline;
     using NServiceBus.TransportDispatch;
     using NServiceBus.Transports;
 
@@ -27,7 +25,7 @@ namespace NServiceBus.Features
             {
                 var pipelinesCollection = context.Settings.Get<PipelineConfiguration>();
 
-                var dispatchPipeline = new PipelineBase<RoutingContext>(b, context.Settings, pipelinesCollection.MainPipeline);
+                var dispatchPipeline = new PipelineBase<IRoutingContext>(b, context.Settings, pipelinesCollection.MainPipeline);
 
                 return new MoveFaultsToErrorQueueBehavior(
                     b.Build<CriticalError>(),

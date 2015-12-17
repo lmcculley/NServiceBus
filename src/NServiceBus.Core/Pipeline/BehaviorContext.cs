@@ -1,18 +1,20 @@
-﻿namespace NServiceBus.Pipeline
+namespace NServiceBus
 {
-    using Extensibility;
-    using ObjectBuilder;
+    using NServiceBus.Extensibility;
+    using NServiceBus.ObjectBuilder;
+    using NServiceBus.Pipeline;
 
     /// <summary>
-    /// Base class for a pipeline behavior.
+    /// Provides base context for behavior context implementations.
     /// </summary>
-    public abstract class BehaviorContext : ContextBag
+    public abstract class BehaviorContext : ContextBag, IBehaviorContext
     {
         /// <summary>
-        /// Create an instance of <see cref="BehaviorContext"/>.
+        /// Creates a new instance of the behavior context.
         /// </summary>
         /// <param name="parentContext">The parent context.</param>
-        protected BehaviorContext(BehaviorContext parentContext) : base(parentContext)
+        // ReSharper disable once SuggestBaseTypeForParameter
+        protected BehaviorContext(IBehaviorContext parentContext) : base(parentContext?.Extensions)
         {
         }
 
@@ -28,6 +30,9 @@
             }
         }
 
-        internal bool handleCurrentMessageLaterWasCalled;
+        /// <summary>
+        /// Gets the extensions.
+        /// </summary>
+        public ContextBag Extensions => this;
     }
 }

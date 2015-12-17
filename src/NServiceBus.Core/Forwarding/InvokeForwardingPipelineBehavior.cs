@@ -2,19 +2,18 @@
 {
     using System;
     using System.Threading.Tasks;
-    using Forwarding;
     using Pipeline;
     using Transports;
 
-    class InvokeForwardingPipelineBehavior : Behavior<PhysicalMessageProcessingContext>
+    class InvokeForwardingPipelineBehavior : Behavior<IIncomingPhysicalMessageContext>
     {
-        public InvokeForwardingPipelineBehavior(IPipelineBase<ForwardingContext> forwardingPipeline, string forwardingAddress)
+        public InvokeForwardingPipelineBehavior(IPipelineBase<IForwardingContext> forwardingPipeline, string forwardingAddress)
         {
             this.forwardingPipeline = forwardingPipeline;
             this.forwardingAddress = forwardingAddress;
         }
 
-        public override async Task Invoke(PhysicalMessageProcessingContext context, Func<Task> next)
+        public override async Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
         {
             await next().ConfigureAwait(false);
 
@@ -27,7 +26,7 @@
             await forwardingPipeline.Invoke(forwardingContext).ConfigureAwait(false);
         }
 
-        IPipelineBase<ForwardingContext> forwardingPipeline;
+        IPipelineBase<IForwardingContext> forwardingPipeline;
         string forwardingAddress;
     }
 }

@@ -19,7 +19,7 @@
 
             var context = await Scenario.Define<Context>()
                 .WithEndpoint<ContextExtendingEndpoint>(e => e
-                    .When((bus, c) => bus.SendLocalAsync(new SomeMessage())))
+                    .When((bus, c) => bus.SendLocal(new SomeMessage())))
                 .Done(c => c.HandlerAExtensionValue != null && c.HandlerBExtensionValue != null)
                 .Run();
 
@@ -69,11 +69,11 @@
                 }
             }
 
-            class CustomContextExtensionBehavior : Behavior<LogicalMessageProcessingContext>
+            class CustomContextExtensionBehavior : Behavior<IIncomingLogicalMessageContext>
             {
-                public override Task Invoke(LogicalMessageProcessingContext context, Func<Task> next)
+                public override Task Invoke(IIncomingLogicalMessageContext context, Func<Task> next)
                 {
-                    context.Set("CustomExtension", ExtensionValue);
+                    context.Extensions.Set("CustomExtension", ExtensionValue);
                     return next();
                 }
             }

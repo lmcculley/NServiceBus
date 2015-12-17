@@ -14,34 +14,35 @@ namespace NServiceBus
     using Transports;
     using TransportOperation = Transports.TransportOperation;
 
-    class TransportReceiveToPhysicalMessageProcessingConnector : StageConnector<TransportReceiveContext, PhysicalMessageProcessingContext>
+    class TransportReceiveToPhysicalMessageProcessingConnector : StageConnector<ITransportReceiveContext, IIncomingPhysicalMessageContext>
     {
-        public TransportReceiveToPhysicalMessageProcessingConnector(IPipelineBase<BatchDispatchContext> batchDispatchPipeline, IOutboxStorage outboxStorage)
+        public TransportReceiveToPhysicalMessageProcessingConnector(IPipelineBase<IBatchDispatchContext> batchDispatchPipeline, IOutboxStorage outboxStorage)
         {
             this.batchDispatchPipeline = batchDispatchPipeline;
             this.outboxStorage = outboxStorage;
         }
 
-        public async override Task Invoke(TransportReceiveContext context, Func<PhysicalMessageProcessingContext, Task> next)
+        public override async Task Invoke(ITransportReceiveContext context, Func<IIncomingPhysicalMessageContext, Task> next)
         {
             var messageId = context.Message.MessageId;
-            var physicalMessageContext = new PhysicalMessageProcessingContext(context.Message, context);
+            var physicalMessageContext = new IncomingPhysicalMessageContext(context.Message, context);
 
-            var deduplicationEntry = await outboxStorage.Get(messageId, context).ConfigureAwait(false);
+            var deduplicationEntry = await outboxStorage.Get(messageId, context.Extensions).ConfigureAwait(false);
             var pendingTransportOperations = new PendingTransportOperations();
 
             if (deduplicationEntry == null)
             {
                 physicalMessageContext.Set(pendingTransportOperations);
 
-                using (var outboxTransaction = await outboxStorage.BeginTransaction(context).ConfigureAwait(false))
+                using (var outboxTransaction = await outboxStorage.BeginTransaction(context.Extensions).ConfigureAwait(false))
                 {
+                    context.Extensions.Set(outboxTransaction);
                     await next(physicalMessageContext).ConfigureAwait(false);
 
                     var outboxMessage = new OutboxMessage(messageId, ConvertToOutboxOperations(pendingTransportOperations.Operations).ToList());
+                    await outboxStorage.Store(outboxMessage, outboxTransaction, context.Extensions).ConfigureAwait(false);
 
-                    await outboxStorage.Store(outboxMessage, outboxTransaction, context).ConfigureAwait(false);
-
+                    context.Extensions.Remove<OutboxTransaction>();
                     await outboxTransaction.Commit().ConfigureAwait(false);
                 }
             }
@@ -57,7 +58,7 @@ namespace NServiceBus
                 await batchDispatchPipeline.Invoke(batchDispatchContext).ConfigureAwait(false);
             }
 
-            await outboxStorage.SetAsDispatched(messageId, context).ConfigureAwait(false);
+            await outboxStorage.SetAsDispatched(messageId, context.Extensions).ConfigureAwait(false);
         }
 
         void ConvertToPendingOperations(OutboxMessage deduplicationEntry, PendingTransportOperations pendingTransportOperations)
@@ -85,14 +86,14 @@ namespace NServiceBus
                     SerializeDeliveryConstraint(constraint, options);
                 }
 
-                SerializeRoutingStategy(operation.DispatchOptions.AddressTag, options);
+                SerializeRoutingStrategy(operation.DispatchOptions.AddressTag, options);
 
                 yield return new Outbox.TransportOperation(operation.Message.MessageId,
                     options, operation.Message.Body, operation.Message.Headers);
             }
         }
 
-        static void SerializeRoutingStategy(AddressTag addressTag, Dictionary<string, string> options)
+        static void SerializeRoutingStrategy(AddressTag addressTag, Dictionary<string, string> options)
         {
             var indirect = addressTag as MulticastAddressTag;
             if (indirect != null)
@@ -190,7 +191,7 @@ namespace NServiceBus
             throw new Exception("Could not find routing strategy to deserialize");
         }
 
-        IPipelineBase<BatchDispatchContext> batchDispatchPipeline;
+        IPipelineBase<IBatchDispatchContext> batchDispatchPipeline;
         IOutboxStorage outboxStorage;
     }
 }

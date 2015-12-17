@@ -10,14 +10,13 @@ namespace NServiceBus
     using OutgoingPipeline;
     using Pipeline;
     using Routing;
-    using TransportDispatch;
     using Transports;
 
-    class UnicastReplyRouterConnector : StageConnector<OutgoingReplyContext, OutgoingLogicalMessageContext>
+    class UnicastReplyRouterConnector : StageConnector<IOutgoingReplyContext, IOutgoingLogicalMessageContext>
     {
-        public override async Task Invoke(OutgoingReplyContext context, Func<OutgoingLogicalMessageContext, Task> next)
+        public override async Task Invoke(IOutgoingReplyContext context, Func<IOutgoingLogicalMessageContext, Task> next)
         {
-            var state = context.GetOrCreate<State>();
+            var state = context.Extensions.GetOrCreate<State>();
 
             var replyToAddress = state.ExplicitDestination;
 
@@ -26,13 +25,19 @@ namespace NServiceBus
                 replyToAddress = GetReplyToAddressFromIncomingMessage(context);
             }
 
-            context.SetHeader(Headers.MessageIntent, MessageIntentEnum.Reply.ToString());
+            context.Headers[Headers.MessageIntent] = MessageIntentEnum.Reply.ToString();
 
             var addressLabels = RouteToDestination(replyToAddress).EnsureNonEmpty(() => "No destination specified.").ToArray();
+            var logicalMessageContext = new OutgoingLogicalMessageContext(
+                    context.MessageId,
+                    context.Headers,
+                    context.Message,
+                    addressLabels,
+                    context);
 
             try
             {
-                await next(new OutgoingLogicalMessageContext(context.Message, addressLabels, context)).ConfigureAwait(false);
+                await next(logicalMessageContext).ConfigureAwait(false);
             }
             catch (QueueNotFoundException ex)
             {
@@ -40,7 +45,7 @@ namespace NServiceBus
             }
         }
 
-        static string GetReplyToAddressFromIncomingMessage(OutgoingReplyContext context)
+        static string GetReplyToAddressFromIncomingMessage(IOutgoingReplyContext context)
         {
             IncomingMessage incomingMessage;
 

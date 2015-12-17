@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.DelayedDelivery
+﻿namespace NServiceBus
 {
     using System.Threading.Tasks;
     using NServiceBus.Pipeline;
@@ -6,7 +6,7 @@
 
     class NoOpCanceling : ICancelDeferredMessages
     {
-        public Task CancelDeferredMessages(string messageKey, BehaviorContext context)
+        public Task CancelDeferredMessages(string messageKey, IBehaviorContext context)
         {
             //no-op
             return TaskEx.Completed;

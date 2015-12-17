@@ -6,6 +6,7 @@
     using System.Diagnostics;
     using System.Globalization;
     using System.Linq;
+    using System.Runtime.ExceptionServices;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -13,7 +14,7 @@
 
     public class ScenarioRunner
     {
-        public static async Task Run(IList<RunDescriptor> runDescriptors, IList<EndpointBehavior> behaviorDescriptors, IList<IScenarioVerification> shoulds, Func<ScenarioContext, bool> done, int limitTestParallelismTo, Action<RunSummary> reports, Func<Exception, bool> allowedExceptions)
+        public static async Task Run(List<RunDescriptor> runDescriptors, List<EndpointBehavior> behaviorDescriptors, List<IScenarioVerification> shoulds, Func<ScenarioContext, bool> done, int limitTestParallelismTo, Action<RunSummary> reports, Func<Exception, bool> allowedExceptions)
         {
             var totalRuns = runDescriptors.Count();
             var cts = new CancellationTokenSource();
@@ -84,7 +85,7 @@
 
             if (failedRuns.Any())
             {
-                throw new AggregateException("Test run failed due to one or more exception", failedRuns.Select(f => f.Result.Exception));
+                throw new AggregateException("Test run failed due to one or more exception", failedRuns.Select(f => f.Result.Exception)).Flatten();
             }
 
             foreach (var runSummary in results.Where(s => !s.Result.Failed))
@@ -147,7 +148,7 @@
             Console.WriteLine("------------------------------------------------------");
         }
 
-        static async Task<RunResult> PerformTestRun(IList<EndpointBehavior> behaviorDescriptors, IList<IScenarioVerification> shoulds, RunDescriptor runDescriptor, Func<ScenarioContext, bool> done, Func<Exception, bool> allowedExceptions)
+        static async Task<RunResult> PerformTestRun(List<EndpointBehavior> behaviorDescriptors, List<IScenarioVerification> shoulds, RunDescriptor runDescriptor, Func<ScenarioContext, bool> done, Func<Exception, bool> allowedExceptions)
         {
             var runResult = new RunResult
             {
@@ -289,6 +290,11 @@
             {
                 throw new Exception("Executing given and whens took longer than 2 minutes");
             }
+
+            if (completedTask.IsFaulted && completedTask.Exception != null)
+            {
+                ExceptionDispatchInfo.Capture(completedTask.Exception).Throw();
+            }
         }
 
         static async Task ExecuteWhens(EndpointRunner endpoint, Func<Exception, bool> allowedExceptions, CancellationTokenSource cts)
@@ -304,33 +310,30 @@
 
         static async Task StopEndpoints(IEnumerable<EndpointRunner> endpoints)
         {
-            // We can get rid of Task.Run when stop is async
-            var tasks = endpoints.Select(endpoint => Task.Run(async () =>
+            var tasks = endpoints.Select(async endpoint => 
             {
                 Console.WriteLine("Stopping endpoint: {0}", endpoint.Name());
-                var sw = new Stopwatch();
-                sw.Start();
+                var stopwatch = Stopwatch.StartNew();
                 var result = await endpoint.Stop().ConfigureAwait(false);
-                sw.Stop();
+                stopwatch.Stop();
                 if (result.Failed)
                 {
                     throw new ScenarioException("Endpoint failed to stop", result.Exception);
                 }
-
-                Console.WriteLine("Endpoint: {0} stopped ({1}s)", endpoint.Name(), sw.Elapsed);
-            })).ToArray();
+                Console.WriteLine("Endpoint: {0} stopped ({1}s)", endpoint.Name(), stopwatch.Elapsed);
+            });
 
             var whenAll = Task.WhenAll(tasks);
             var timeoutTask = Task.Delay(TimeSpan.FromMinutes(2));
             var completedTask = await Task.WhenAny(whenAll, timeoutTask).ConfigureAwait(false);
 
-            if (completedTask.Equals(timeoutTask))
+            if (completedTask == timeoutTask)
             {
                 throw new Exception("Stopping endpoints took longer than 2 minutes");
             }
         }
 
-        static async Task<List<ActiveRunner>> InitializeRunners(RunDescriptor runDescriptor, IList<EndpointBehavior> behaviorDescriptors)
+        static async Task<List<ActiveRunner>> InitializeRunners(RunDescriptor runDescriptor, List<EndpointBehavior> behaviorDescriptors)
         {
             var runners = new List<ActiveRunner>();
             var routingTable = CreateRoutingTable(behaviorDescriptors);

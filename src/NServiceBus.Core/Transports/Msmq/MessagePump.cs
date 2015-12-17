@@ -1,4 +1,4 @@
-namespace NServiceBus.Transports.Msmq
+namespace NServiceBus
 {
     using System;
     using System.Collections.Concurrent;
@@ -7,14 +7,13 @@ namespace NServiceBus.Transports.Msmq
     using System.Messaging;
     using System.Threading;
     using System.Threading.Tasks;
-    using CircuitBreakers;
     using Logging;
+    using NServiceBus.Transports;
 
     class MessagePump : IPushMessages, IDisposable
     {
-        public MessagePump(CriticalError criticalError, Func<TransactionSupport, ReceiveStrategy> receiveStrategyFactory)
+        public MessagePump(Func<TransportTransactionMode, ReceiveStrategy> receiveStrategyFactory)
         {
-            this.criticalError = criticalError;
             this.receiveStrategyFactory = receiveStrategyFactory;
         }
 
@@ -23,17 +22,17 @@ namespace NServiceBus.Transports.Msmq
             // Injected
         }
 
-        public void Init(Func<PushContext, Task> pipe, PushSettings settings)
+        public Task Init(Func<PushContext, Task> pipe, CriticalError criticalError, PushSettings settings)
         {
             pipeline = pipe;
 
-            receiveStrategy = receiveStrategyFactory(settings.RequiredTransactionSupport);
+            receiveStrategy = receiveStrategyFactory(settings.RequiredTransactionMode);
 
             peekCircuitBreaker = new RepeatedFailuresOverTimeCircuitBreaker("MsmqPeek", TimeSpan.FromSeconds(30), ex => criticalError.Raise("Failed to peek " + settings.InputQueue, ex));
             receiveCircuitBreaker = new RepeatedFailuresOverTimeCircuitBreaker("MsmqReceive", TimeSpan.FromSeconds(30), ex => criticalError.Raise("Failed to receive from " + settings.InputQueue, ex));
 
             var inputAddress = MsmqAddress.Parse(settings.InputQueue);
-            var errorAddress = MsmqAddress.Parse(settings.InputQueue);
+            var errorAddress = MsmqAddress.Parse(settings.ErrorQueue);
 
             if (!string.Equals(errorAddress.Machine, Environment.MachineName, StringComparison.OrdinalIgnoreCase))
             {
@@ -44,7 +43,7 @@ namespace NServiceBus.Transports.Msmq
             inputQueue = new MessageQueue(inputAddress.FullPath, false, true, QueueAccessMode.Receive);
             errorQueue = new MessageQueue(errorAddress.FullPath, false, true, QueueAccessMode.Send);
 
-            if (settings.RequiredTransactionSupport != TransactionSupport.None && !QueueIsTransactional())
+            if (settings.RequiredTransactionMode != TransportTransactionMode.None && !QueueIsTransactional())
             {
                 throw new ArgumentException("Queue must be transactional if you configure your endpoint to be transactional (" + settings.InputQueue + ").");
             }
@@ -55,11 +54,10 @@ namespace NServiceBus.Transports.Msmq
             {
                 inputQueue.Purge();
             }
-        }
 
-        /// <summary>
-        ///     Starts the dequeuing of message using the specified
-        /// </summary>
+            return TaskEx.Completed;
+        }
+        
         public void Start(PushRuntimeSettings limitations)
         {
             MessageQueue.ClearConnectionCache();
@@ -73,11 +71,8 @@ namespace NServiceBus.Transports.Msmq
             // LongRunning is useless combined with async/await
             messagePumpTask = Task.Run(() => ProcessMessages(), CancellationToken.None);
         }
-
-        /// <summary>
-        ///     Stops the dequeuing of messages.
-        /// </summary>
-        public async Task StopAsync()
+        
+        public async Task Stop()
         {
             cancellationTokenSource.Cancel();
 
@@ -103,23 +98,21 @@ namespace NServiceBus.Transports.Msmq
         [DebuggerNonUserCode]
         async Task ProcessMessages()
         {
-            try
+            while (!cancellationToken.IsCancellationRequested)
             {
-                await InnerProcessMessages().ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // For graceful shutdown purposes
-            }
-            catch (Exception ex)
-            {
-                Logger.Error("MSMQ Message pump failed", ex);
-                await peekCircuitBreaker.Failure(ex).ConfigureAwait(false);
-            }
-
-            if (!cancellationToken.IsCancellationRequested)
-            {
-                await ProcessMessages().ConfigureAwait(false);
+                try
+                {
+                    await InnerProcessMessages().ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // For graceful shutdown purposes
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("MSMQ Message pump failed", ex);
+                    await peekCircuitBreaker.Failure(ex).ConfigureAwait(false);
+                }
             }
         }
 
@@ -223,7 +216,6 @@ namespace NServiceBus.Transports.Msmq
         CancellationToken cancellationToken;
         CancellationTokenSource cancellationTokenSource;
         SemaphoreSlim concurrencyLimiter;
-        CriticalError criticalError;
         MessageQueue errorQueue;
         MessageQueue inputQueue;
 
@@ -232,7 +224,7 @@ namespace NServiceBus.Transports.Msmq
         Func<PushContext, Task> pipeline;
         RepeatedFailuresOverTimeCircuitBreaker receiveCircuitBreaker;
         ReceiveStrategy receiveStrategy;
-        Func<TransactionSupport, ReceiveStrategy> receiveStrategyFactory;
+        Func<TransportTransactionMode, ReceiveStrategy> receiveStrategyFactory;
         ConcurrentDictionary<Task, Task> runningReceiveTasks;
 
         static ILog Logger = LogManager.GetLogger<ReceiveWithNativeTransaction>();

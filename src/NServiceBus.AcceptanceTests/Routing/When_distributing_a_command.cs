@@ -5,6 +5,7 @@
     using System.Threading.Tasks;
     using NServiceBus.AcceptanceTesting;
     using NServiceBus.AcceptanceTests.EndpointTemplates;
+    using NServiceBus.Routing;
     using NUnit.Framework;
 
     public class When_distributing_a_command : NServiceBusAcceptanceTest
@@ -13,7 +14,7 @@
         public async Task Should_round_robin()
         {
             var context = await Scenario.Define<Context>()
-                .WithEndpoint<Sender>(b => b.When((bus, c) => bus.SendAsync(new Request())))
+                .WithEndpoint<Sender>(b => b.When((bus, c) => bus.Send(new Request())))
                 .WithEndpoint<Receiver1>()
                 .WithEndpoint<Receiver2>()
                 .Done(c => c.Receiver1TimesCalled > 4 && c.Receiver2TimesCalled > 4)
@@ -33,18 +34,19 @@
         {
             public Sender()
             {
-                var basePath = AppDomain.CurrentDomain.BaseDirectory;
-
-                File.WriteAllLines(Path.Combine(basePath, "DistributingACommand.Receiver.txt"), new[]
-                {
-                    "1:",
-                    "2:"
-                });
-
+                var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "routes.xml");
+                File.WriteAllText(filePath, @"<endpoints>
+    <endpoint name=""DistributingACommand.Receiver"">
+        <instance discriminator=""1""/>
+        <instance discriminator=""2""/>
+    </endpoint>
+</endpoints>
+");
+                
                 EndpointSetup<DefaultServer>(c =>
                 {
-                    c.Routing().UseFileBasedEndpointInstanceLists().LookForFilesIn(basePath);
-                    c.Routing().UnicastRoutingTable.AddStatic(typeof(Request), new EndpointName("DistributingACommand.Receiver"));
+                    c.Routing().UseFileBasedEndpointInstanceMapping(filePath);
+                    c.Routing().UnicastRoutingTable.RouteToEndpoint(typeof(Request), new Endpoint("DistributingACommand.Receiver"));
                 });
             }
 
@@ -64,7 +66,7 @@
                             break;
                     }
 
-                    return context.SendAsync(new Request());
+                    return context.Send(new Request());
                 }
             }
         }
@@ -76,7 +78,7 @@
                 EndpointSetup<DefaultServer>(c =>
                 {
                     c.EndpointName("DistributingACommand.Receiver");
-                    c.ScaleOut().UniqueQueuePerEndpointInstance("1");
+                    c.ScaleOut().InstanceDiscriminator("1");
                 });
             }
 
@@ -84,7 +86,7 @@
             {
                 public Task Handle(Request message, IMessageHandlerContext context)
                 {
-                    return context.ReplyAsync(new Response
+                    return context.Reply(new Response
                     {
                         EndpointName = "Receiver1"
                     });
@@ -99,7 +101,7 @@
                 EndpointSetup<DefaultServer>(c =>
                 {
                     c.EndpointName("DistributingACommand.Receiver");
-                    c.ScaleOut().UniqueQueuePerEndpointInstance("2");
+                    c.ScaleOut().InstanceDiscriminator("2");
                 });
             }
 
@@ -107,7 +109,7 @@
             {
                 public Task Handle(Request message, IMessageHandlerContext context)
                 {
-                    return context.ReplyAsync(new Response
+                    return context.Reply(new Response
                     {
                         EndpointName = "Receiver2"
                     });

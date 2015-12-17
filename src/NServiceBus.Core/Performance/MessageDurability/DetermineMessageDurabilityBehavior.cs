@@ -6,23 +6,22 @@ namespace NServiceBus
     using DeliveryConstraints;
     using NServiceBus.Pipeline.OutgoingPipeline;
     using Pipeline;
-    using TransportDispatch;
 
-    class DetermineMessageDurabilityBehavior : Behavior<OutgoingLogicalMessageContext>
+    class DetermineMessageDurabilityBehavior : Behavior<IOutgoingLogicalMessageContext>
     {
         public DetermineMessageDurabilityBehavior(Dictionary<Type,bool> durabilitySettings)
         {
             this.durabilitySettings = durabilitySettings;
         }
 
-        public override Task Invoke(OutgoingLogicalMessageContext context, Func<Task> next)
+        public override Task Invoke(IOutgoingLogicalMessageContext context, Func<Task> next)
         {
             bool isDurable;
             if (durabilitySettings.TryGetValue(context.Message.MessageType, out isDurable) && !isDurable)
             {
                 context.AddDeliveryConstraint(new NonDurableDelivery());
 
-                context.SetHeader(Headers.NonDurableMessage,true.ToString());
+                context.Headers[Headers.NonDurableMessage] = true.ToString();
             }
 
             return next();

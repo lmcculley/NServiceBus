@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
-namespace NServiceBus.Utils
+namespace NServiceBus
 {
     using System.Collections;
     using System.Diagnostics;
@@ -9,7 +8,7 @@ namespace NServiceBus.Utils
 
     [DebuggerDisplay("Count = {Count}")]
     [DebuggerTypeProxy(PREFIX + "DictionaryDebugView`2" + SUFFIX)]
-    internal abstract class BaseDictionary<TKey, TValue> : IDictionary<TKey, TValue>
+    abstract class BaseDictionary<TKey, TValue> : IDictionary<TKey, TValue>
     {
         const string PREFIX = "System.Collections.Generic.Mscorlib_";
         const string SUFFIX = ",mscorlib,Version=2.0.0.0,Culture=neutral,PublicKeyToken=b77a5c561934e089";
@@ -184,10 +183,10 @@ namespace NServiceBus.Utils
 
         static void Copy<T>(ICollection<T> source, T[] array, int arrayIndex)
         {
-            Guard.AgainstNull("array", array);
+            Guard.AgainstNull(nameof(array), array);
 
             if (arrayIndex < 0 || arrayIndex > array.Length)
-                throw new ArgumentOutOfRangeException("arrayIndex");
+                throw new ArgumentOutOfRangeException(nameof(arrayIndex));
 
             if (array.Length - arrayIndex < source.Count)
                 throw new ArgumentException("Destination array is not large enough. Check array.Length and arrayIndex.");

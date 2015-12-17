@@ -1,17 +1,22 @@
-﻿namespace NServiceBus.OutgoingPipeline
+﻿namespace NServiceBus
 {
+    using System.Collections.Generic;
+    using NServiceBus.OutgoingPipeline;
     using NServiceBus.Pipeline;
 
     /// <summary>
     /// Pipeline context for send operations.
     /// </summary>
-    public class OutgoingSendContext : BehaviorContext
+    public class OutgoingSendContext : OutgoingContext, IOutgoingSendContext
     {
         /// <summary>
-        /// Initializes the context with a parent context.
+        /// Creates a new instance of an outgoing send context.
         /// </summary>
-        public OutgoingSendContext(OutgoingLogicalMessage message, SendOptions options, BehaviorContext parentContext)
-            : base(parentContext)
+        /// <param name="message">The message being sent.</param>
+        /// <param name="options">The send options.</param>
+        /// <param name="parentContext">The parent context.</param>
+        public OutgoingSendContext(OutgoingLogicalMessage message, SendOptions options, IBehaviorContext parentContext)
+            : base(options.MessageId, new Dictionary<string, string>(options.OutgoingHeaders), parentContext)
         {
             Guard.AgainstNull(nameof(parentContext), parentContext);
             Guard.AgainstNull(nameof(message), message);
@@ -23,8 +28,8 @@
         }
 
         /// <summary>
-        /// The message beeing sent.
+        /// The message being sent.
         /// </summary>
-        public OutgoingLogicalMessage Message { get; private set; }
+        public OutgoingLogicalMessage Message { get; }
     }
 }

@@ -2,8 +2,6 @@ namespace NServiceBus.Features
 {
     using System;
     using NServiceBus.Config;
-    using NServiceBus.Pipeline;
-    using NServiceBus.Recoverability.SecondLevelRetries;
     using NServiceBus.Settings;
     using NServiceBus.TransportDispatch;
     using NServiceBus.Transports;
@@ -39,7 +37,7 @@ namespace NServiceBus.Features
             {
                 var pipelinesCollection = context.Settings.Get<PipelineConfiguration>();
              
-                var dispatchPipeline = new PipelineBase<RoutingContext>(b, context.Settings, pipelinesCollection.MainPipeline);
+                var dispatchPipeline = new PipelineBase<IRoutingContext>(b, context.Settings, pipelinesCollection.MainPipeline);
                 return new SecondLevelRetriesBehavior(dispatchPipeline,retryPolicy,b.Build<BusNotifications>(), context.Settings.LocalAddress());
             }, DependencyLifecycle.InstancePerCall);
         }

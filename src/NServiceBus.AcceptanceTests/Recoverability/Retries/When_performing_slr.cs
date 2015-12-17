@@ -82,17 +82,17 @@
                 public Context Context { get; set; }
                 public BusNotifications BusNotifications { get; set; }
 
-                public Task StartAsync(IBusContext context)
+                public Task Start(IBusSession session)
                 {
-                    BusNotifications.Errors.MessageSentToErrorQueue.Subscribe(e =>
+                    BusNotifications.Errors.MessageSentToErrorQueue += (sender, message) =>
                     {
                         Context.ForwardedToErrorQueue = true;
-                        Context.SlrChecksum = Checksum(e.Body);
-                    });
+                        Context.SlrChecksum = Checksum(message.Body);
+                    };
                     return Task.FromResult(0);
                 }
 
-                public Task StopAsync(IBusContext context)
+                public Task Stop(IBusSession session)
                 {
                     return Task.FromResult(0);
                 }

@@ -17,7 +17,7 @@ namespace NServiceBus.AcceptanceTests.PipelineExt
         public async Task RunDemo()
         {
             var context = await Scenario.Define<Context>()
-                .WithEndpoint<EndpointWithCustomExceptionMuting>(b => b.When(bus => bus.SendLocalAsync(new MessageThatWillBlowUpButExWillBeMuted())))
+                .WithEndpoint<EndpointWithCustomExceptionMuting>(b => b.When(bus => bus.SendLocal(new MessageThatWillBlowUpButExWillBeMuted())))
                 .WithEndpoint<AuditSpy>()
                 .Done(c => c.MessageAudited)
                 .Run();
@@ -43,9 +43,9 @@ namespace NServiceBus.AcceptanceTests.PipelineExt
                 }
             }
 
-            class MyExceptionFilteringBehavior : Behavior<PhysicalMessageProcessingContext>
+            class MyExceptionFilteringBehavior : Behavior<IIncomingPhysicalMessageContext>
             {
-                public override async Task Invoke(PhysicalMessageProcessingContext context, Func<Task> next)
+                public override async Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
                 {
                     try
                     {

@@ -7,9 +7,8 @@ namespace NServiceBus
     using NServiceBus.Settings;
     using Pipeline;
     using Pipeline.Contexts;
-    using Recoverability.FirstLevelRetries;
 
-    class FirstLevelRetriesBehavior : Behavior<TransportReceiveContext>
+    class FirstLevelRetriesBehavior : Behavior<ITransportReceiveContext>
     {
         public FirstLevelRetriesBehavior(FlrStatusStorage storage, FirstLevelRetryPolicy retryPolicy, BusNotifications notifications)
         {
@@ -18,7 +17,7 @@ namespace NServiceBus
             this.notifications = notifications;
         }
 
-        public override async Task Invoke(TransportReceiveContext context, Func<Task> next)
+        public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
         {
             try
             {

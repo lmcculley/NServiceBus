@@ -3,11 +3,8 @@
     using System;
     using System.Collections;
     using System.Collections.Generic;
-    using System.Linq;
-    using ApprovalUtilities.Utilities;
     using NServiceBus.Encryption;
     using NUnit.Framework;
-    using Conventions = NServiceBus.Conventions;
 
     [TestFixture]
     public class When_inspecting_a_message_using_the_default_convention : WireEncryptedStringContext
@@ -16,18 +13,18 @@
         public void Should_use_the_wireEncrypted_string()
         {
             var message = new Customer
-            {
-                Secret = MySecretMessage,
-                SecretField = MySecretMessage,
-                CreditCard = new CreditCardDetails { CreditCardNumber = MySecretMessage },
-                LargeByteArray = new byte[1000000],
-                ListOfCreditCards =
+                {
+                    Secret = MySecretMessage,
+                    SecretField = MySecretMessage,
+                    CreditCard = new CreditCardDetails {CreditCardNumber = MySecretMessage},
+                    LargeByteArray = new byte[1000000],
+                    ListOfCreditCards =
                         new List<CreditCardDetails>
                             {
                                 new CreditCardDetails {CreditCardNumber = MySecretMessage},
                                 new CreditCardDetails {CreditCardNumber = MySecretMessage}
                             }
-            };
+                };
             message.ListOfSecrets = new ArrayList(message.ListOfCreditCards);
 
             var result = inspector.ScanObject(message).ToList();
@@ -113,12 +110,12 @@
         [Test]
         public void Should_match_the_property_correctly()
         {
-            var child = new SubProperty { Secret = MySecretMessage };
+            var child = new SubProperty {Secret = MySecretMessage};
 
             var message = new MessageWithCircularReferences
-            {
-                Child = child
-            };
+                {
+                    Child = child
+                };
             child.Self = child;
             child.Parent = message;
 
@@ -136,10 +133,10 @@
         public void Should_match_the_property_correctly()
         {
             var message = new MessageWithPropertyWithBackingPublicField
-            {
-                MySecret = Create(),
+                {
+                    MySecret = Create(),
 
-            };
+                };
 
             inspector
                 .ScanObject(message)
@@ -184,10 +181,10 @@
         public void Should_use_the_wireEncrypted_string()
         {
             var message = new Customer
-            {
-                Secret = Create(),
-                SecretField = Create(),
-                CreditCard = new CreditCardDetails { CreditCardNumber = Create() }
+                {
+                    Secret = Create(),
+                    SecretField = Create(),
+                    CreditCard = new CreditCardDetails {CreditCardNumber = Create()}
 
             };
 
@@ -263,7 +260,7 @@
 
         public ArrayList ListOfSecrets { get; set; }
 
-        public byte[] LargeByteArray { get; set; }
+        public byte[] LargeByteArray{ get; set; }
     }
 
     public class CreditCardDetails

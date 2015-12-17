@@ -22,7 +22,7 @@
                         options.GetExtensions().Set(new SendOptionsExtensions.TestingSendOptionsExtensionBehavior.Context { SomeValue = "I did it" });
                         options.RouteToLocalEndpointInstance();
 
-                        return bus.SendAsync(new SendMessage(), options);
+                        return bus.Send(new SendMessage(), options);
                     }))
                     .Done(c => c.WasCalled)
                     .Run();
@@ -55,12 +55,12 @@
                 }
             }
 
-            public class TestingSendOptionsExtensionBehavior : Behavior<OutgoingLogicalMessageContext>
+            public class TestingSendOptionsExtensionBehavior : Behavior<IOutgoingLogicalMessageContext>
             {
-                public override Task Invoke(OutgoingLogicalMessageContext context, Func<Task> next)
+                public override Task Invoke(IOutgoingLogicalMessageContext context, Func<Task> next)
                 {
                     Context data;
-                    if (context.TryGet(out data))
+                    if (context.Extensions.TryGet(out data))
                     {
                         context.UpdateMessageInstance(new SendMessage { Secret = data.SomeValue });
                     }

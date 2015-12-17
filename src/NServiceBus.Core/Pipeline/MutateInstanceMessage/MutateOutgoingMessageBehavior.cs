@@ -1,34 +1,28 @@
 ﻿namespace NServiceBus
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading.Tasks;
     using MessageMutator;
     using NServiceBus.Pipeline.OutgoingPipeline;
+    using NServiceBus.Transports;
+    using NServiceBus.Unicast.Messages;
     using Pipeline;
-    using Pipeline.Contexts;
 
-    class MutateOutgoingMessageBehavior : Behavior<OutgoingLogicalMessageContext>
+    class MutateOutgoingMessageBehavior : Behavior<IOutgoingLogicalMessageContext>
     {
-        public override async Task Invoke(OutgoingLogicalMessageContext context, Func<Task> next)
+        public override async Task Invoke(IOutgoingLogicalMessageContext context, Func<Task> next)
         {
-            //TODO: should not need to do a lookup
-            var state = context.Get<OutgoingPhysicalToRoutingConnector.State>();
-            InvokeHandlerContext incomingState;
-            context.TryGetRootContext(out incomingState);
+            LogicalMessage incomingLogicalMessage;
+            context.Extensions.TryGet(out incomingLogicalMessage);
 
-            object messageBeingHandled = null;
-            Dictionary<string, string> incomingHeaders = null;
-            if (incomingState != null)
-            {
-                messageBeingHandled = incomingState.MessageBeingHandled;
-                incomingHeaders = incomingState.Headers;
-            }
+            IncomingMessage incomingPhysicalMessage;
+            context.Extensions.TryGet(out incomingPhysicalMessage);
+
             var mutatorContext = new MutateOutgoingMessageContext(
                 context.Message.Instance, 
-                state.Headers,
-                messageBeingHandled, 
-                incomingHeaders);
+                context.Headers,
+                incomingLogicalMessage?.Instance, 
+                incomingPhysicalMessage?.Headers);
 
             foreach (var mutator in context.Builder.BuildAll<IMutateOutgoingMessages>())
             {

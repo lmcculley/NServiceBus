@@ -64,12 +64,6 @@
     <Reference Include="Mono.Cecil.Rocks">
       <HintPath>..\packages\Mono.Cecil.0.9.5.4\lib\net40\Mono.Cecil.Rocks.dll</HintPath>
     </Reference>
-    <Reference Include="NServiceBus.NewCompilerBits">
-      <HintPath>TestDlls\NServiceBus.NewCompilerBits.dll</HintPath>
-    </Reference>
-    <Reference Include="NServiceBus.OldCompilerBits">
-      <HintPath>TestDlls\NServiceBus.OldCompilerBits.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="NuDoq">
       <HintPath>..\packages\NuDoq.1.2.5\lib\net35\NuDoq.dll</HintPath>
@@ -84,18 +78,6 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Messaging" />
-    <Reference Include="System.Reactive.Core">
-      <HintPath>..\packages\Rx-Core.2.2.5\lib\net45\System.Reactive.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Reactive.Interfaces">
-      <HintPath>..\packages\Rx-Interfaces.2.2.5\lib\net45\System.Reactive.Interfaces.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Reactive.Linq">
-      <HintPath>..\packages\Rx-Linq.2.2.5\lib\net45\System.Reactive.Linq.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Reactive.PlatformServices">
-      <HintPath>..\packages\Rx-PlatformServices.2.2.5\lib\net45\System.Reactive.PlatformServices.dll</HintPath>
-    </Reference>
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Transactions" />
     <Reference Include="System.Web" />
@@ -115,27 +97,38 @@
     <Compile Include="AssemblyScanner\When_checking_image_type.cs" />
     <Compile Include="AssemblyScanner\When_directory_with_no_reference_dlls_is_scanned.cs" />
     <Compile Include="AssemblyScanner\When_directory_with_handler_dll_is_scanned.cs" />
-    <Compile Include="AssemblyScanner\When_directory__with_non_dot_net_dll_is_scanned.cs" />
+    <Compile Include="AssemblyScanner\When_directory_with_non_dot_net_dll_is_scanned.cs" />
     <Compile Include="AssemblyScanner\When_exclusion_predicate_is_used.cs" />
     <Compile Include="AssemblyScanner\When_scanning_directory_with_nested_directories.cs" />
     <Compile Include="AssemblyScanner\When_scanning_for_dlls_only.cs" />
     <Compile Include="AssemblyScanner\When_scanning_top_level_only.cs" />
     <Compile Include="AssemblyScanner\When_told_to_scan_app_domain.cs" />
     <Compile Include="Causation\AttachCausationHeadersBehaviorTests.cs" />
+    <Compile Include="Config\When_using_initialization.cs" />
+    <Compile Include="ContextBagTests.cs" />
     <Compile Include="ContextHelpers.cs" />
     <Compile Include="DelayedDelivery\RouteDeferredMessageToTimeoutManagerBehaviorTests.cs" />
     <Compile Include="Encryption\When_decrypting_a_member_that_is_missing_encryption_data.cs" />
     <Compile Include="Encryption\When_sending_a_message_with_2x_compatibility_disabled.cs" />
     <Compile Include="ExceptionTests - Copy.cs" />
     <Compile Include="DelayedDelivery\TimeoutManager\DispatchTimeoutBehaviorTest.cs" />
+    <Compile Include="DeliveryConstraintContextExtensions\DeliveryConstraintContextExtensionsTests.cs" />
+    <Compile Include="Msmq\TimeToBeReceivedOverrideCheckerTest.cs" />
     <Compile Include="Msmq\MsmqExtensionsTests.cs" />
     <Compile Include="Msmq\MsmqHelpers.cs" />
     <Compile Include="Msmq\MsmqAddressTests.cs" />
+    <Compile Include="Msmq\MsmqSubscriptionStorageQueueTests.cs" />
     <Compile Include="Pipeline\Incoming\InvokeHandlerTerminatorTest.cs" />
+    <Compile Include="Pipeline\Outgoing\OutgoingPublishContextTests.cs" />
+    <Compile Include="Pipeline\Outgoing\OutgoingReplyContextTests.cs" />
+    <Compile Include="Pipeline\Outgoing\OutgoingSendContextTests.cs" />
     <Compile Include="Routing\ApplyReplyToAddressBehaviorTests.cs" />
     <Compile Include="Routing\DetermineRouteForPublishBehaviorTests.cs" />
     <Compile Include="Routing\DetermineRouteForSendBehaviorTests.cs" />
+    <Compile Include="Routing\EndpointInstanceTests.cs" />
     <Compile Include="Routing\EndpointInstancesTests.cs" />
+    <Compile Include="Routing\FileRoutingTableParserTests.cs" />
+    <Compile Include="Routing\FileRoutingTableTests.cs" />
     <Compile Include="Routing\MessageDrivenSubscribeTerminatorTests.cs" />
     <Compile Include="Routing\MessageDrivenUnsubscribeTerminatorTests.cs" />
     <Compile Include="Routing\SubscriptionRouterTests.cs" />
@@ -146,16 +139,15 @@
     <Compile Include="Routing\UnicastRouterTests.cs" />
     <Compile Include="Serializers\MessageDeserializerResolverTests.cs" />
     <Compile Include="Serializers\SerializationExtensionsTests.cs" />
-    <Compile Include="TransportDispatch\HeaderAssertHelpers.cs" />
     <Compile Include="Performance\TimeToBeReceived\TimeToBeReceivedAttributeTests.cs" />
     <Compile Include="Config\TestConfigurationSection.cs" />
     <Compile Include="Config\When_no_custom_configuration_source_is_specified.cs" />
     <Compile Include="Config\When_scanning_assemblies.cs" />
     <Compile Include="Config\When_users_override_the_configuration_source.cs" />
     <Compile Include="Config\When_using_convention_based_messages.cs" />
-    <Compile Include="Conventions\ArgumentExceptionTests.cs" />
-    <Compile Include="Conventions\DocumentationTests.cs" />
-    <Compile Include="Conventions\MessageConventionSpecs.cs" />
+    <Compile Include="ArgumentExceptionTests.cs" />
+    <Compile Include="DocumentationTests.cs" />
+    <Compile Include="MessageConventionSpecs.cs" />
     <Compile Include="DataBus\InMemoryDataBus.cs" />
     <Compile Include="Encryption\ValidationTests.cs" />
     <Compile Include="Encryption\When_message_contains_props_and_fields_that_cannot_be_set.cs" />
@@ -272,6 +264,7 @@
     <Compile Include="Unicast\Contexts\EventMessage.cs" />
     <Compile Include="Unicast\Contexts\InterfaceMessage.cs" />
     <Compile Include="Unicast\LoadHandlersBehaviorTests.cs" />
+    <Compile Include="Unicast\RunningEndpointInstanceTest.cs" />
     <Compile Include="Unicast\StartAndStoppablesRunnerTests.cs" />
     <Compile Include="Unicast\TransportMessageTests.cs" />
     <Compile Include="Unicast\MessageTypeTests.cs" />

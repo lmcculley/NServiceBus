@@ -20,7 +20,7 @@
             try
             {
                 await Scenario.Define<Context>(c => { c.Id = Guid.NewGuid(); })
-                    .WithEndpoint<Endpoint>(b => b.When((bus, c) => bus.SendLocalAsync(new MyMessage
+                    .WithEndpoint<Endpoint>(b => b.When((bus, c) => bus.SendLocal(new MyMessage
                     {
                         Id = c.Id
                     })))
@@ -64,7 +64,7 @@
         }
 
 
-        public class Endpoint : EndpointConfigurationBuilder, IFinalizeConfiguration
+        public class Endpoint : EndpointConfigurationBuilder, IWantToRunBeforeConfigurationIsFinalized
         {
             static bool initialized;
             bool generatorWasCalled;
@@ -88,13 +88,13 @@
                 public Context Context { get; set; }
                 public ReadOnlySettings Settings { get; set; }
 
-                public Task StartAsync(IBusContext context)
+                public Task Start(IBusSession session)
                 {
                     Context.GeneratorWasCalled = Settings.Get<bool>("GeneratorWasCalled");
                     return Task.FromResult(0);
                 }
 
-                public Task StopAsync(IBusContext context)
+                public Task Stop(IBusSession session)
                 {
                     return Task.FromResult(0);
                 }

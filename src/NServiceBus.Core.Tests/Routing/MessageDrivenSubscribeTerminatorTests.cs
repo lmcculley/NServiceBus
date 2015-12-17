@@ -4,7 +4,6 @@
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using NServiceBus.Extensibility;
-    using NServiceBus.Pipeline;
     using NServiceBus.Routing;
     using NServiceBus.Routing.MessageDrivenSubscriptions;
     using NServiceBus.Transports;
@@ -21,7 +20,7 @@
             publishers.AddStatic("publisher1", typeof(object));
             router = new SubscriptionRouter(publishers, new EndpointInstances(), new TransportAddresses());
             dispatcher = new FakeDispatcher();
-            terminator = new MessageDrivenSubscribeTerminator(router, "replyToAddress", new EndpointName("Endpoint"), dispatcher, false);
+            terminator = new MessageDrivenSubscribeTerminator(router, "replyToAddress", new Endpoint("Endpoint"), dispatcher, false);
         }
 
         [Test]

@@ -11,17 +11,17 @@
         /// <param name="context">The context being extended.</param>
         /// <param name="key">The audit key.</param>
         /// <param name="value">The value.</param>
-        public static void AddAuditData(this AuditContext context, string key, string value)
+        public static void AddAuditData(this IAuditContext context, string key, string value)
         {
-            Guard.AgainstNull("context", context);
-            Guard.AgainstNullAndEmpty("key", key);
+            Guard.AgainstNull(nameof(context), context);
+            Guard.AgainstNullAndEmpty(nameof(key), key);
            
             AuditToDispatchConnector.State state;
 
-            if (!context.TryGet(out state))
+            if (!context.Extensions.TryGet(out state))
             {
                 state = new AuditToDispatchConnector.State();
-                context.Set(state);
+                context.Extensions.Set(state);
             }
             state.AuditValues[key] = value;
         }

@@ -5,6 +5,7 @@
     using NServiceBus.AcceptanceTests.EndpointTemplates;
     using NServiceBus.Extensibility;
     using NServiceBus.Features;
+    using NServiceBus.Persistence;
     using NServiceBus.Sagas;
     using NUnit.Framework;
 
@@ -15,7 +16,7 @@
         public async Task Should_use_it_to_find_saga()
         {
             var context = await Scenario.Define<Context>()
-                   .WithEndpoint<SagaEndpoint>(b => b.When(bus => bus.SendLocalAsync(new StartSagaMessage())))
+                   .WithEndpoint<SagaEndpoint>(b => b.When(bus => bus.SendLocal(new StartSagaMessage())))
                    .Done(c => c.FinderUsed)
                    .Run();
 
@@ -37,7 +38,7 @@
             class CustomFinder : IFindSagas<TestSaga06.SagaData06>.Using<StartSagaMessage>
             {
                 public Context Context { get; set; }
-                public Task<TestSaga06.SagaData06> FindBy(StartSagaMessage message, ReadOnlyContextBag context)
+                public Task<TestSaga06.SagaData06> FindBy(StartSagaMessage message, SynchronizedStorageSession storageSession, ReadOnlyContextBag context)
                 {
                     Context.FinderUsed = true;
                     return Task.FromResult(default(TestSaga06.SagaData06));

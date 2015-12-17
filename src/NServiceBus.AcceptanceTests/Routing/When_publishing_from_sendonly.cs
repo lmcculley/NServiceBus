@@ -20,7 +20,7 @@
         public async Task Should_be_delivered_to_all_subscribers()
         {
             await Scenario.Define<Context>()
-                .WithEndpoint<SendOnlyPublisher>(b => b.When((bus, c) => bus.PublishAsync(new MyEvent())))
+                .WithEndpoint<SendOnlyPublisher>(b => b.When((bus, c) => bus.Publish(new MyEvent())))
                 .WithEndpoint<Subscriber>()
                 .Done(c => c.SubscriberGotTheEvent)
                 .Repeat(r => r.For<AllTransportsWithMessageDrivenPubSub>())
@@ -93,21 +93,21 @@
             {
                 addressTask = Task.FromResult(new[]
                 {
-                    new Unicast.Subscriptions.MessageDrivenSubscriptions.Subscriber("publishingfromsendonly.subscriber", null)
+                    new Unicast.Subscriptions.MessageDrivenSubscriptions.Subscriber("publishingFromSendonly.subscriber", null)
                 }.AsEnumerable());
             }
 
-            public Task Subscribe(Unicast.Subscriptions.MessageDrivenSubscriptions.Subscriber subscriber, IEnumerable<MessageType> messageTypes, ContextBag context)
+            public Task Subscribe(Unicast.Subscriptions.MessageDrivenSubscriptions.Subscriber subscriber, IReadOnlyCollection<MessageType> messageTypes, ContextBag context)
             {
                 return Task.FromResult(0);
             }
 
-            public Task Unsubscribe(Unicast.Subscriptions.MessageDrivenSubscriptions.Subscriber subscriber, IEnumerable<MessageType> messageTypes, ContextBag context)
+            public Task Unsubscribe(Unicast.Subscriptions.MessageDrivenSubscriptions.Subscriber subscriber, IReadOnlyCollection<MessageType> messageTypes, ContextBag context)
             {
                 return Task.FromResult(0);
             }
 
-            public Task<IEnumerable<Unicast.Subscriptions.MessageDrivenSubscriptions.Subscriber>> GetSubscriberAddressesForMessage(IEnumerable<MessageType> messageTypes, ContextBag context)
+            public Task<IEnumerable<Unicast.Subscriptions.MessageDrivenSubscriptions.Subscriber>> GetSubscriberAddressesForMessage(IReadOnlyCollection<MessageType> messageTypes, ContextBag context)
             {
                 return addressTask;
             }

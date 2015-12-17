@@ -15,7 +15,7 @@
         public async Task It_should_not_invoke_SagaNotFound_handler()
         {
             var context = await Scenario.Define<Context>(c => { c.Id = Guid.NewGuid(); })
-                    .WithEndpoint<Endpoint>(b => b.When((bus, c) => bus.SendLocalAsync(new StartSaga1 { ContextId = c.Id })))
+                    .WithEndpoint<Endpoint>(b => b.When((bus, c) => bus.SendLocal(new StartSaga1 { ContextId = c.Id })))
                     .Done(c => (c.Saga1TimeoutFired && c.Saga2TimeoutFired) || c.SagaNotFound)
                     .Run(TimeSpan.FromSeconds(20));
 
@@ -43,7 +43,7 @@
                 });
             }
 
-            public class MultTimeoutsSaga1 : Saga<MultTimeoutsSaga1.MultTimeoutsSaga1Data>, 
+            public class MultiTimeoutsSaga1 : Saga<MultiTimeoutsSaga1.MultiTimeoutsSaga1Data>, 
                 IAmStartedByMessages<StartSaga1>, 
                 IHandleTimeouts<Saga1Timeout>, 
                 IHandleTimeouts<Saga2Timeout>
@@ -57,8 +57,8 @@
 
                     Data.ContextId = message.ContextId;
 
-                    await RequestTimeoutAsync(context, TimeSpan.FromSeconds(5), new Saga1Timeout { ContextId = TestContext.Id });
-                    await RequestTimeoutAsync(context, TimeSpan.FromMilliseconds(10), new Saga2Timeout { ContextId = TestContext.Id });
+                    await RequestTimeout(context, TimeSpan.FromSeconds(5), new Saga1Timeout { ContextId = TestContext.Id });
+                    await RequestTimeout(context, TimeSpan.FromMilliseconds(10), new Saga2Timeout { ContextId = TestContext.Id });
                 }
 
                 public Task Timeout(Saga1Timeout state, IMessageHandlerContext context)
@@ -83,12 +83,12 @@
                     return Task.FromResult(0);
                 }
 
-                public class MultTimeoutsSaga1Data : ContainSagaData
+                public class MultiTimeoutsSaga1Data : ContainSagaData
                 {
                     public virtual Guid ContextId { get; set; }
                 }
 
-                protected override void ConfigureHowToFindSaga(SagaPropertyMapper<MultTimeoutsSaga1Data> mapper)
+                protected override void ConfigureHowToFindSaga(SagaPropertyMapper<MultiTimeoutsSaga1Data> mapper)
                 {
                     mapper.ConfigureMapping<StartSaga1>(m => m.ContextId)
                         .ToSaga(s => s.Id);

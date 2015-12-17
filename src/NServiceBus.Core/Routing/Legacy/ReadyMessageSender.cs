@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.Routing.Legacy
+﻿namespace NServiceBus
 {
     using System;
     using System.Collections.Generic;
@@ -20,40 +20,40 @@
             this.receiveAddress = receiveAddress;
         }
 
-        protected override Task OnStart(IBusContext busContext)
+        protected override async Task OnStart(IBusSession session)
         {
-            SendReadyMessage(initialCapacity, true);
+            await SendReadyMessage(initialCapacity, true).ConfigureAwait(false);
             Logger.DebugFormat("Ready startup message with WorkerSessionId {0} sent. ", workerSessionId);
-            return Task.FromResult(0);
         }
 
-        protected override void OnStop()
+        protected override Task OnStop(IBusSession session)
         {
+            return TaskEx.Completed;
         }
 
-        void SendReadyMessage(int capacity, bool isStarting)
+        Task SendReadyMessage(int capacity, bool isStarting)
         {
             //we use the actual address to make sure that the worker inside the master node will check in correctly
             var readyMessage = ControlMessageFactory.Create(MessageIntentEnum.Send);
 
-            readyMessage.Headers.Add(DistributorHeaders.WorkerCapacityAvailable, capacity.ToString());
-            readyMessage.Headers.Add(DistributorHeaders.WorkerSessionId, workerSessionId);
+            readyMessage.Headers.Add(LegacyDistributorHeaders.WorkerCapacityAvailable, capacity.ToString());
+            readyMessage.Headers.Add(LegacyDistributorHeaders.WorkerSessionId, workerSessionId);
             readyMessage.Headers.Add(Headers.ReplyToAddress, receiveAddress);
 
             if (isStarting)
             {
-                readyMessage.Headers.Add(DistributorHeaders.WorkerStarting, bool.TrueString);
+                readyMessage.Headers.Add(LegacyDistributorHeaders.WorkerStarting, bool.TrueString);
             }
 
             var dispatchOptions = new DispatchOptions(new UnicastAddressTag(distributorControlAddress), DispatchConsistency.Default);
-            dispatcher.Dispatch(new[] { new TransportOperation(readyMessage, dispatchOptions) }, new ContextBag()).GetAwaiter().GetResult();
+            return dispatcher.Dispatch(new[] { new TransportOperation(readyMessage, dispatchOptions) }, new ContextBag());
         }
         
         public void MessageProcessed(Dictionary<string, string> headers)
         {
             //if there was a failure this "send" will be rolled back
             string messageSessionId;
-            headers.TryGetValue(DistributorHeaders.WorkerSessionId, out messageSessionId);
+            headers.TryGetValue(LegacyDistributorHeaders.WorkerSessionId, out messageSessionId);
             if (messageSessionId == null)
             {
                 return;

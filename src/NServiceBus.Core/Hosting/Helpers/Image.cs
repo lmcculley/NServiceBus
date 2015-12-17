@@ -1,4 +1,4 @@
-namespace NServiceBus.Hosting.Helpers
+namespace NServiceBus
 {
     using System;
     using System.IO;
@@ -42,7 +42,7 @@ namespace NServiceBus.Hosting.Helpers
 
         public static CompilationMode GetCompilationMode(string file)
         {
-            Guard.AgainstNull("file", file);
+            Guard.AgainstNull(nameof(file), file);
 
             using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
             using (var image = new Image(stream))

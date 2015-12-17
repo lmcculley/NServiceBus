@@ -14,7 +14,7 @@
         public async Task Should_contain_processing_stats_headers()
         {
             var context = await Scenario.Define<Context>()
-            .WithEndpoint<EndpointWithAuditOn>(b => b.When(bus => bus.SendLocalAsync(new MessageToBeAudited())))
+            .WithEndpoint<EndpointWithAuditOn>(b => b.When(bus => bus.SendLocal(new MessageToBeAudited())))
             .WithEndpoint<EndpointThatHandlesAuditMessages>()
             .Done(c => c.IsMessageHandledByTheAuditEndpoint)
             .Run();
@@ -41,13 +41,6 @@
 
             class MessageToBeAuditedHandler : IHandleMessages<MessageToBeAudited>
             {
-                Context context;
-
-                public MessageToBeAuditedHandler(Context context)
-                {
-                    this.context = context;
-                }
-
                 public Task Handle(MessageToBeAudited message, IMessageHandlerContext context1)
                 {
                     return Task.FromResult(0);

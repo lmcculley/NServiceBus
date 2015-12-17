@@ -12,31 +12,31 @@ namespace NServiceBus.Pipeline.Outgoing
         /// <summary>
         /// Returns the incoming physical message if there is one currently processed.
         /// </summary>
-        public static bool TryGetIncomingPhysicalMessage(this OutgoingReplyContext context, out IncomingMessage message)
+        public static bool TryGetIncomingPhysicalMessage(this IOutgoingReplyContext context, out IncomingMessage message)
         {
             Guard.AgainstNull(nameof(context), context);
 
-            return context.TryGet(out message);
+            return context.Extensions.TryGet(out message);
         }
 
         /// <summary>
         /// Returns the incoming physical message if there is one currently processed.
         /// </summary>
-        public static bool TryGetIncomingPhysicalMessage(this OutgoingLogicalMessageContext context, out IncomingMessage message)
+        public static bool TryGetIncomingPhysicalMessage(this IOutgoingLogicalMessageContext context, out IncomingMessage message)
         {
             Guard.AgainstNull(nameof(context), context);
 
-            return context.TryGet(out message);
+            return context.Extensions.TryGet(out message);
         }
 
         /// <summary>
         /// Returns the incoming physical message if there is one currently processed.
         /// </summary>
-        public static bool TryGetIncomingPhysicalMessage(this OutgoingPhysicalMessageContext context, out IncomingMessage message)
+        public static bool TryGetIncomingPhysicalMessage(this IOutgoingPhysicalMessageContext context, out IncomingMessage message)
         {
             Guard.AgainstNull(nameof(context), context);
 
-            return context.TryGet(out message);
+            return context.Extensions.TryGet(out message);
         }
     }
 }

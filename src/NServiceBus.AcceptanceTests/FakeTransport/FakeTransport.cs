@@ -2,20 +2,21 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading.Tasks;
+    using NServiceBus.Routing;
     using Settings;
     using Transports;
 
     public class FakeTransport : TransportDefinition
     {
-        protected override void ConfigureForReceiving(TransportReceivingConfigurationContext context)
+        protected override TransportReceivingConfigurationResult ConfigureForReceiving(TransportReceivingConfigurationContext context)
         {
-            context.SetMessagePumpFactory(c => new FakeReceiver(c, context.Settings.Get<Exception>()));
-            context.SetQueueCreatorFactory(() => new FakeQueueCreator());
+            return new TransportReceivingConfigurationResult(() => new FakeReceiver(context.Settings.Get<Exception>()), () => new FakeQueueCreator(), () => Task.FromResult(StartupCheckResult.Success));
         }
 
-        protected override void ConfigureForSending(TransportSendingConfigurationContext context)
+        protected override TransportSendingConfigurationResult ConfigureForSending(TransportSendingConfigurationContext context)
         {
-            context.SetDispatcherFactory(() => new FakeDispatcher());
+            return new TransportSendingConfigurationResult(() => new FakeDispatcher(), () => Task.FromResult(StartupCheckResult.Success));
         }
 
         public override IEnumerable<Type> GetSupportedDeliveryConstraints()
@@ -23,9 +24,9 @@
             return new List<Type>();
         }
 
-        public override TransactionSupport GetTransactionSupport()
+        public override TransportTransactionMode GetSupportedTransactionMode()
         {
-            return TransactionSupport.SingleQueue;
+            return TransportTransactionMode.ReceiveOnly;
         }
 
         public override IManageSubscriptions GetSubscriptionManager()
@@ -33,9 +34,9 @@
             throw new NotImplementedException();
         }
 
-        public override string GetDiscriminatorForThisEndpointInstance()
+        public override EndpointInstance BindToLocalEndpoint(EndpointInstance instance, ReadOnlySettings settings)
         {
-            return null;
+            return instance;
         }
 
         public override string ToTransportAddress(LogicalAddress logicalAddress)
@@ -45,7 +46,7 @@
 
         public override OutboundRoutingPolicy GetOutboundRoutingPolicy(ReadOnlySettings settings)
         {
-            return new OutboundRoutingPolicy(OutboundRoutingType.DirectSend, OutboundRoutingType.DirectSend, OutboundRoutingType.DirectSend);
+            return new OutboundRoutingPolicy(OutboundRoutingType.Unicast, OutboundRoutingType.Unicast, OutboundRoutingType.Unicast);
         }
 
         public override bool RequiresConnectionString => false;

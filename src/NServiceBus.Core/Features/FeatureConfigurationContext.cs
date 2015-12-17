@@ -1,5 +1,7 @@
 ﻿namespace NServiceBus.Features
 {
+    using System;
+    using System.Collections.Generic;
     using NServiceBus.ObjectBuilder;
     using NServiceBus.Pipeline;
     using NServiceBus.Settings;
@@ -12,9 +14,11 @@
     {
         internal FeatureConfigurationContext(ReadOnlySettings settings, IConfigureComponents container, PipelineSettings pipelineSettings)
         {
-            this.Settings = settings;
-            this.Container = container;
-            this.Pipeline = pipelineSettings;
+            Settings = settings;
+            Container = container;
+            Pipeline = pipelineSettings;
+
+            TaskControllers = new List<FeatureStartupTaskController>();
         }
 
         /// <summary>
@@ -32,17 +36,19 @@
         /// </summary>
         public PipelineSettings Pipeline { get; }
 
+        internal List<FeatureStartupTaskController> TaskControllers { get; } 
+
         /// <summary>
         ///     Creates a new satellite processing pipeline.
         /// </summary>
-        public PipelineSettings AddSatellitePipeline(string name, string qualifier, TransactionSupport requiredTransactionSupport, PushRuntimeSettings runtimeSettings, out string transportAddress)
+        public PipelineSettings AddSatellitePipeline(string name, string qualifier, TransportTransactionMode requiredTransportTransactionMode, PushRuntimeSettings runtimeSettings, out string transportAddress)
         {
             var instanceName = Settings.EndpointInstanceName();
             var satelliteLogicalAddress = new LogicalAddress(instanceName, qualifier);
             var addressTranslation = Settings.Get<LogicalToTransportAddressTranslation>();
             transportAddress = addressTranslation.Translate(satelliteLogicalAddress);
 
-            var pipelineModifications = new SatellitePipelineModifications(name, transportAddress, requiredTransactionSupport, runtimeSettings);
+            var pipelineModifications = new SatellitePipelineModifications(name, transportAddress, requiredTransportTransactionMode, runtimeSettings);
             Settings.Get<PipelineConfiguration>().SatellitePipelines.Add(pipelineModifications);
             var newPipeline = new PipelineSettings(pipelineModifications);
 
@@ -50,6 +56,34 @@
             Settings.Get<QueueBindings>().BindReceiving(transportAddress);
 
             return newPipeline;
+        }
+
+        /// <summary>
+        /// Registers an instance of a feature startup task.
+        /// </summary>
+        /// <param name="startupTask">A startup task.</param>
+        public void RegisterStartupTask<TTask>(TTask startupTask) where TTask : FeatureStartupTask
+        {
+            RegisterStartupTask(() => startupTask);
+        }
+
+        /// <summary>
+        /// Registers a startup task factory.
+        /// </summary>
+        /// <param name="startupTaskFactory">A startup task factory.</param>
+        public void RegisterStartupTask<TTask>(Func<TTask> startupTaskFactory) where TTask : FeatureStartupTask
+        {
+            TaskControllers.Add(new FeatureStartupTaskController(typeof(TTask).Name, _ => startupTaskFactory()));
+        }
+
+        /// <summary>
+        /// Registers a startup task factory which gets access to the builder.
+        /// </summary>
+        /// <param name="startupTaskFactory">A startup task factory.</param>
+        /// <remarks>Should only be used when really necessary. Usually a design smell.</remarks>
+        public void RegisterStartupTask<TTask>(Func<IBuilder, TTask> startupTaskFactory) where TTask : FeatureStartupTask
+        {
+            TaskControllers.Add(new FeatureStartupTaskController(typeof(TTask).Name, startupTaskFactory));
         }
     }
 }

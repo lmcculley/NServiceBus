@@ -5,10 +5,8 @@ namespace NServiceBus.Core.Tests
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
-    using Features;
     using Faults;
     using Hosting;
-    using NServiceBus.Pipeline;
     using NServiceBus.Pipeline.Contexts;
     using NServiceBus.Routing;
     using TransportDispatch;
@@ -43,6 +41,7 @@ namespace NServiceBus.Core.Tests
 
             Assert.AreEqual("someid", fakeDispatchPipeline.MessageSent.MessageId);
         }
+
         [Test]
         public void ShouldInvokeCriticalErrorIfForwardingFails()
         {
@@ -66,7 +65,6 @@ namespace NServiceBus.Core.Tests
 
             Assert.True(criticalError.ErrorRaised);
         }
-
 
         [Test]
         public async Task ShouldEnrichHeadersWithHostAndExceptionDetails()
@@ -96,7 +94,6 @@ namespace NServiceBus.Core.Tests
             Assert.AreEqual("public-receive-address", fakeDispatchPipeline.MessageSent.Headers[FaultsHeaderKeys.FailedQ]);
             //exception details
             Assert.AreEqual("testex", fakeDispatchPipeline.MessageSent.Headers["NServiceBus.ExceptionInfo.Message"]);
-
         }
 
         [Test]
@@ -114,7 +111,7 @@ namespace NServiceBus.Core.Tests
                 "error");
             var failedMessageNotification = new FailedMessage();
 
-            notifications.Errors.MessageSentToErrorQueue.Subscribe(f => { failedMessageNotification = f; });
+            notifications.Errors.MessageSentToErrorQueue += (sender, message) => failedMessageNotification = message;
 
             behavior.Initialize(new PipelineInfo("Test", "public-receive-address"));
             await behavior.Invoke(CreateContext("someid"), () =>
@@ -126,20 +123,18 @@ namespace NServiceBus.Core.Tests
 
             Assert.AreEqual("testex", failedMessageNotification.Exception.Message);
         }
-
-
-
-        TransportReceiveContext CreateContext(string messageId)
+        
+        ITransportReceiveContext CreateContext(string messageId)
         {
-            return new TransportReceiveContext(new IncomingMessage(messageId, new Dictionary<string, string>(), new MemoryStream()), new RootContext(null));
+            return new TransportReceiveContext(new IncomingMessage(messageId, new Dictionary<string, string>(), new MemoryStream()), null, new RootContext(null));
         }
-        class FakeDispatchPipeline : IPipelineBase<RoutingContext>
+        class FakeDispatchPipeline : IPipelineBase<IRoutingContext>
         {
             public string Destination { get; private set; }
             public OutgoingMessage MessageSent { get; private set; }
             public bool ThrowOnDispatch { get; set; }
 
-            public Task Invoke(RoutingContext context)
+            public Task Invoke(IRoutingContext context)
             {
                 if (ThrowOnDispatch)
                 {
@@ -151,10 +146,10 @@ namespace NServiceBus.Core.Tests
                 return Task.FromResult(0);
             }
         }
+
         class FakeCriticalError : CriticalError
         {
-            public FakeCriticalError()
-                : base((s, e) => { }, new FakeBuilder())
+            public FakeCriticalError() : base((d, s, e) => TaskEx.Completed)
             {
             }
 

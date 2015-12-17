@@ -1,22 +1,26 @@
-﻿namespace NServiceBus.Pipeline.OutgoingPipeline
+﻿namespace NServiceBus
 {
     using System.Collections.Generic;
     using NServiceBus.OutgoingPipeline;
+    using NServiceBus.Pipeline;
+    using NServiceBus.Pipeline.OutgoingPipeline;
     using NServiceBus.Routing;
 
     /// <summary>
     /// Outgoing pipeline context.
     /// </summary>
-    public class OutgoingLogicalMessageContext : OutgoingContext
+    public class OutgoingLogicalMessageContext : OutgoingContext, IOutgoingLogicalMessageContext
     {
         /// <summary>
-        /// Creates a new instance of <see cref="OutgoingLogicalMessageContext" />.
+        /// Creates a new instance of an outgoing logical context.
         /// </summary>
-        /// <param name="message">The outgoing message.</param>
-        /// <param name="routingStrategies">The address labels.</param>
+        /// <param name="messageId">The message id.</param>
+        /// <param name="headers">The headers.</param>
+        /// <param name="message">The outgoing logical message.</param>
+        /// <param name="routingStrategies">The routing strategies.</param>
         /// <param name="parentContext">The parent context.</param>
-        public OutgoingLogicalMessageContext(OutgoingLogicalMessage message, IReadOnlyCollection<RoutingStrategy> routingStrategies, BehaviorContext parentContext)
-            : base(parentContext)
+        public OutgoingLogicalMessageContext(string messageId, Dictionary<string, string> headers, OutgoingLogicalMessage message, IReadOnlyCollection<RoutingStrategy> routingStrategies, IBehaviorContext parentContext)
+            : base(messageId, headers, parentContext)
         {
             Message = message;
             RoutingStrategies = routingStrategies;
@@ -31,7 +35,7 @@
         /// <summary>
         /// The routing strategies for this message.
         /// </summary>
-        public IReadOnlyCollection<RoutingStrategy> RoutingStrategies { get; private set; }
+        public IReadOnlyCollection<RoutingStrategy> RoutingStrategies { get; }
 
         /// <summary>
         /// Updates the message instance.

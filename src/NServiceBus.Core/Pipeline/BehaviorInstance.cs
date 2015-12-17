@@ -1,9 +1,10 @@
-﻿namespace NServiceBus.Pipeline
+﻿namespace NServiceBus
 {
     using System;
     using System.Diagnostics;
     using System.Linq;
     using System.Threading.Tasks;
+    using NServiceBus.Pipeline;
     using NServiceBus.Unicast.Transport;
 
     [DebuggerDisplay("{Type.Name}")]
@@ -28,7 +29,7 @@
 
         public Type Type { get; }
 
-        public Task Invoke(BehaviorContext context, Func<BehaviorContext, Task> next)
+        public Task Invoke(IBehaviorContext context, Func<IBehaviorContext, Task> next)
         {
             return invoker.Invoke(instance, context, next);
         }

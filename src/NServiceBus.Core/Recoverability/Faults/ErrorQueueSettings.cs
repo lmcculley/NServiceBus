@@ -1,10 +1,9 @@
-namespace NServiceBus.Faults
+namespace NServiceBus
 {
     using System;
     using NServiceBus.Config;
     using NServiceBus.Logging;
     using NServiceBus.Settings;
-    using NServiceBus.Utils;
 
     static class ErrorQueueSettings
     {

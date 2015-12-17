@@ -1,7 +1,9 @@
-namespace NServiceBus.Transports
+namespace NServiceBus
 {
     using System;
+    using System.Threading.Tasks;
     using Features;
+    using NServiceBus.Transports;
 
     class Receiving : Feature
     {
@@ -38,9 +40,35 @@ namespace NServiceBus.Transports
             
             context.Container.RegisterSingleton(inboundTransport.Definition);
 
-            var receiveConfigContext = inboundTransport.Configure(context.Settings);
-            context.Container.ConfigureComponent(b => receiveConfigContext.MessagePumpFactory(b.Build<CriticalError>()), DependencyLifecycle.InstancePerCall);
-            context.Container.ConfigureComponent(b => receiveConfigContext.QueueCreatorFactory(), DependencyLifecycle.SingleInstance);
+            var receiveConfigResult = inboundTransport.Configure(context.Settings);
+            context.Container.ConfigureComponent(b => receiveConfigResult.MessagePumpFactory(), DependencyLifecycle.InstancePerCall);
+            context.Container.ConfigureComponent(b => receiveConfigResult.QueueCreatorFactory(), DependencyLifecycle.SingleInstance);
+
+            context.RegisterStartupTask(new PrepareForReceiving(receiveConfigResult.PreStartupCheck));
+        }
+        
+        class PrepareForReceiving : FeatureStartupTask
+        {
+            readonly Func<Task<StartupCheckResult>> preStartupCheck;
+
+            public PrepareForReceiving(Func<Task<StartupCheckResult>> preStartupCheck)
+            {
+                this.preStartupCheck = preStartupCheck;
+            }
+
+            protected override async Task OnStart(IBusSession session)
+            {
+                var result = await preStartupCheck().ConfigureAwait(false);
+                if (!result.Succeeded)
+                {
+                    throw new Exception($"Pre start-up check failed: {result.ErrorMessage}");
+                }
+            }
+
+            protected override Task OnStop(IBusSession session)
+            {
+                return TaskEx.Completed;
+            }
         }
     }
 }

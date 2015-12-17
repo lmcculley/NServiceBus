@@ -4,18 +4,17 @@
     using System.Threading.Tasks;
     using NServiceBus.Pipeline;
     using NServiceBus.Pipeline.OutgoingPipeline;
-    using NServiceBus.TransportDispatch;
 
-    class ApplyReplyToAddressBehavior : Behavior<OutgoingLogicalMessageContext>
+    class ApplyReplyToAddressBehavior : Behavior<IOutgoingLogicalMessageContext>
     {
         public ApplyReplyToAddressBehavior(string replyToAddress)
         {
             this.replyToAddress = replyToAddress;
         }
 
-        public override Task Invoke(OutgoingLogicalMessageContext context, Func<Task> next)
+        public override Task Invoke(IOutgoingLogicalMessageContext context, Func<Task> next)
         {
-            context.SetHeader(Headers.ReplyToAddress, replyToAddress);
+            context.Headers[Headers.ReplyToAddress] = replyToAddress;
 
             return next();
         }

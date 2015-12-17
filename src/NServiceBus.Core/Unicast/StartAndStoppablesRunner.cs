@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.Unicast
+﻿namespace NServiceBus
 {
     using System;
     using System.Collections.Concurrent;
@@ -15,12 +15,12 @@
             wantToRunWhenBusStartsAndStopses = wantToRunWhenBusStartsAndStops;
         }
 
-        public Task StartAsync(IBusContext context)
+        public Task Start(IBusSession session)
         {
             var startableTasks = new List<Task>();
             foreach (var startable in wantToRunWhenBusStartsAndStopses)
             {
-                var task = startable.StartAsync(context);
+                var task = startable.Start(session);
 
                 var startable1 = startable;
                 task.ContinueWith(t =>
@@ -39,7 +39,7 @@
             return Task.WhenAll(startableTasks.ToArray());
         }
 
-        public async Task StopAsync(IBusContext context)
+        public async Task Stop(IBusSession session)
         {
             var stoppables = Interlocked.Exchange(ref thingsRanAtStartup, new ConcurrentBag<IWantToRunWhenBusStartsAndStops>());
             if (!stoppables.Any())
@@ -52,7 +52,7 @@
             {
                 try
                 {
-                    var task = stoppable.StopAsync(context);
+                    var task = stoppable.Stop(session);
 
                     var stoppable1 = stoppable;
                     task.ContinueWith(t =>

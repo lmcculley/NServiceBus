@@ -8,33 +8,183 @@
 
     public class PipelineModelBuilderTests
     {
-
         [Test]
-        public void ShouldDetectConflictingStageConnectors()
+        public void ShouldDetectConflictingStepRegistrations()
         {
-            var builder = new PipelineModelBuilder(typeof(RootContext), new List<RegisterStep>
+            var builder = new PipelineModelBuilder(typeof(IParentContext), new List<RegisterStep>
             {
                 RegisterStep.Create("Root1", typeof(RootBehavior), "desc"),
-                RegisterStep.Create("RootToChildConnector", typeof(RootToChildConnector), "desc"),
-                RegisterStep.Create("RootToChild2Connector", typeof(RootToChild2Connector), "desc")
-        
-            }, new List<RemoveStep>(), new List<ReplaceBehavior>());
+                RegisterStep.Create("Root1", typeof(ChildBehaviorOfChildContextNotInheritedFromParentContext), "desc"),
+
+            }, new List<RemoveStep>(), new List<ReplaceStep>());
 
 
             var ex = Assert.Throws<Exception>(() => builder.Build());
 
-            Assert.True(ex.Message.Contains("Multiple stage connectors found"));
+            Assert.AreEqual("Step registration with id 'Root1' is already registered for 'NServiceBus.Core.Tests.Pipeline.PipelineModelBuilderTests+RootBehavior'.", ex.Message);
+        }
+
+        [Test]
+        public void ShouldOnlyAllowReplacementOfExistingRegistrations()
+        {
+            var builder = new PipelineModelBuilder(typeof(IParentContext), new List<RegisterStep>
+            {
+                RegisterStep.Create("Root1", typeof(RootBehavior), "desc"),
+
+            }, new List<RemoveStep>(), new List<ReplaceStep>
+            {
+                new ReplaceStep("DoesNotExist", typeof(RootBehavior), "desc"),
+            });
+
+
+            var ex = Assert.Throws<Exception>(() => builder.Build());
+
+            Assert.AreEqual("You can only replace an existing step registration, 'DoesNotExist' registration does not exist.", ex.Message);
+        }
+
+        [Test]
+        public void ShouldOnlyAllowRemovalOfExistingRegistrations()
+        {
+            var builder = new PipelineModelBuilder(typeof(IParentContext), new List<RegisterStep>
+            {
+                RegisterStep.Create("Root1", typeof(RootBehavior), "desc"),
+
+            }, new List<RemoveStep>
+            {
+                new RemoveStep("DoesNotExist"),
+            }, new List<ReplaceStep>());
+
+
+            var ex = Assert.Throws<Exception>(() => builder.Build());
+
+            Assert.AreEqual("You cannot remove step registration with id 'DoesNotExist', registration does not exist.", ex.Message);
+        }
+
+        [Test]
+        public void ShouldOnlyAllowRemovalWhenNoOtherDependsOnItsBeforeRegistration()
+        {
+            var someBehaviorRegistration = RegisterStep.Create("SomeBehaviorOfParentContext", typeof(SomeBehaviorOfParentContext), "desc");
+            var anotherBehaviorRegistration = RegisterStep.Create("AnotherBehaviorOfParentContext", typeof(AnotherBehaviorOfParentContext), "desc");
+
+            anotherBehaviorRegistration.InsertBefore("SomeBehaviorOfParentContext");
+
+            var builder = new PipelineModelBuilder(typeof(IParentContext), new List<RegisterStep>
+            {
+                someBehaviorRegistration,
+                anotherBehaviorRegistration,
+
+            }, new List<RemoveStep> { new RemoveStep("SomeBehaviorOfParentContext")}, new List<ReplaceStep>());
+
+
+            var ex = Assert.Throws<Exception>(() => builder.Build());
+
+            Assert.AreEqual("You cannot remove step registration with id 'SomeBehaviorOfParentContext', registration with id 'AnotherBehaviorOfParentContext' depends on it.", ex.Message);
+        }
+
+        [Test]
+        public void ShouldOnlyAllowRemovalWhenNoOtherDependsOnItsAfterRegistration()
+        {
+            var someBehaviorRegistration = RegisterStep.Create("SomeBehaviorOfParentContext", typeof(SomeBehaviorOfParentContext), "desc");
+            var anotherBehaviorRegistration = RegisterStep.Create("AnotherBehaviorOfParentContext", typeof(AnotherBehaviorOfParentContext), "desc");
+
+            anotherBehaviorRegistration.InsertAfter("SomeBehaviorOfParentContext");
+
+            var builder = new PipelineModelBuilder(typeof(IParentContext), new List<RegisterStep>
+            {
+                someBehaviorRegistration,
+                anotherBehaviorRegistration,
+
+            }, new List<RemoveStep> { new RemoveStep("SomeBehaviorOfParentContext") }, new List<ReplaceStep>());
+
+
+            var ex = Assert.Throws<Exception>(() => builder.Build());
+
+            Assert.AreEqual("You cannot remove step registration with id 'SomeBehaviorOfParentContext', registration with id 'AnotherBehaviorOfParentContext' depends on it.", ex.Message);
+        }
+
+        [Test]
+        public void ShouldDetectMissingBehaviorForRootContext()
+        {
+            var builder = new PipelineModelBuilder(typeof(IParentContext), new List<RegisterStep>
+            {
+                RegisterStep.Create("Child", typeof(ChildBehaviorOfChildContext), "desc"),
+
+            }, new List<RemoveStep>(), new List<ReplaceStep>());
+
+
+            var ex = Assert.Throws<Exception>(() => builder.Build());
+
+            Assert.AreEqual("Can't find any behaviors/connectors for the root context (NServiceBus.Core.Tests.Pipeline.PipelineModelBuilderTests+IParentContext)", ex.Message);
+        }
+
+        [Test]
+        public void ShouldDetectConflictingStageConnectors()
+        {
+            var builder = new PipelineModelBuilder(typeof(IParentContext), new List<RegisterStep>
+            {
+                RegisterStep.Create("Root1", typeof(RootBehavior), "desc"),
+                RegisterStep.Create("ParentContextToChildContextConnector", typeof(ParentContextToChildContextConnector), "desc"),
+                RegisterStep.Create("ParentContextToChildContextNotInheritedFromParentContextConnector", typeof(ParentContextToChildContextNotInheritedFromParentContextConnector), "desc")
+
+            }, new List<RemoveStep>(), new List<ReplaceStep>());
+
+
+            var ex = Assert.Throws<Exception>(() => builder.Build());
+
+            Assert.AreEqual("Multiple stage connectors found for stage 'NServiceBus.Core.Tests.Pipeline.PipelineModelBuilderTests+IParentContext'. Please remove one of: 'NServiceBus.Core.Tests.Pipeline.PipelineModelBuilderTests+ParentContextToChildContextConnector', 'NServiceBus.Core.Tests.Pipeline.PipelineModelBuilderTests+ParentContextToChildContextNotInheritedFromParentContextConnector'", ex.Message);
+        }
+
+        [Test]
+        public void ShouldDetectNonExistingInsertAfterRegistrations()
+        {
+            var someBehaviorRegistration = RegisterStep.Create("SomeBehaviorOfParentContext", typeof(SomeBehaviorOfParentContext), "desc");
+            var anotherBehaviorRegistration = RegisterStep.Create("AnotherBehaviorOfParentContext", typeof(AnotherBehaviorOfParentContext), "desc");
+
+            anotherBehaviorRegistration.InsertAfter("DoesNotExist");
+
+            var builder = new PipelineModelBuilder(typeof(IParentContext), new List<RegisterStep>
+            {
+                someBehaviorRegistration,
+                anotherBehaviorRegistration,
+
+            }, new List<RemoveStep>(), new List<ReplaceStep>());
+
+
+            var ex = Assert.Throws<Exception>(() => builder.Build());
+
+            Assert.AreEqual("Registration 'DoesNotExist' specified in the insertafter of the 'AnotherBehaviorOfParentContext' step does not exist. Current StepIds: 'SomeBehaviorOfParentContext', 'AnotherBehaviorOfParentContext'", ex.Message);
+        }
+
+        [Test]
+        public void ShouldDetectNonExistingInsertBeforeRegistrations()
+        {
+            var someBehaviorRegistration = RegisterStep.Create("SomeBehaviorOfParentContext", typeof(SomeBehaviorOfParentContext), "desc");
+            var anotherBehaviorRegistration = RegisterStep.Create("AnotherBehaviorOfParentContext", typeof(AnotherBehaviorOfParentContext), "desc");
+
+            anotherBehaviorRegistration.InsertBefore("DoesNotExist");
+
+            var builder = new PipelineModelBuilder(typeof(IParentContext), new List<RegisterStep>
+            {
+                someBehaviorRegistration,
+                anotherBehaviorRegistration,
+
+            }, new List<RemoveStep>(), new List<ReplaceStep>());
+
+
+            var ex = Assert.Throws<Exception>(() => builder.Build());
+
+            Assert.AreEqual("Registration 'DoesNotExist' specified in the insertbefore of the 'AnotherBehaviorOfParentContext' step does not exist. Current StepIds: 'SomeBehaviorOfParentContext', 'AnotherBehaviorOfParentContext'", ex.Message);
         }
 
         [Test]
         public void ShouldDetectRegistrationsWithContextsReachableFromTheRootContext()
         {
-            var builder = new PipelineModelBuilder(typeof(RootContext), new List<RegisterStep>
+            var builder = new PipelineModelBuilder(typeof(IParentContext), new List<RegisterStep>
             {
                 RegisterStep.Create("Root", typeof(RootBehavior), "desc"),
-                RegisterStep.Create("RootToChildConnector", typeof(RootToChild2Connector), "desc"),
-                RegisterStep.Create("Child", typeof(NonReachableChildBehavior), "desc")
-            }, new List<RemoveStep>(), new List<ReplaceBehavior>());
+                RegisterStep.Create("ParentContextToChildContextNotInheritedFromParentContextConnector", typeof(ParentContextToChildContextNotInheritedFromParentContextConnector), "desc"),
+                RegisterStep.Create("Child", typeof(ChildBehaviorOfChildContextNotInheritedFromParentContext), "desc")
+            }, new List<RemoveStep>(), new List<ReplaceStep>());
 
 
             var model = builder.Build();
@@ -43,15 +193,32 @@
         }
 
         [Test]
+        public void ShouldDetectRegistrationsWithContextsNotReachableFromTheRootContext()
+        {
+            var builder = new PipelineModelBuilder(typeof(IParentContext), new List<RegisterStep>
+            {
+                RegisterStep.Create("Root", typeof(RootBehavior), "desc"),
+                RegisterStep.Create("ParentContextToChildContextConnector", typeof(ParentContextToChildContextConnector), "desc"),
+                RegisterStep.Create("Child", typeof(ChildBehaviorOfChildContextNotInheritedFromParentContext), "desc")
+            }, new List<RemoveStep>(), new List<ReplaceStep>());
+
+
+            var model = builder.Build();
+
+            Assert.AreEqual(2, model.Count);
+        }
+
+        [Test]
         public void ShouldHandleTheTerminator()
         {
-            var builder = new PipelineModelBuilder(typeof(RootContext), new List<RegisterStep>
+            var builder = new PipelineModelBuilder(typeof(IParentContext), new List<RegisterStep>
             {
                 RegisterStep.Create("Root1", typeof(RootBehavior), "desc"),
-                RegisterStep.Create("RootToChildConnector", typeof(RootToChildConnector), "desc"),
+                RegisterStep.Create("ParentContextToChildContextConnector", typeof(ParentContextToChildContextConnector), "desc"),
+                RegisterStep.Create("Child", typeof(ChildBehaviorOfChildContextNotInheritedFromParentContext), "desc"),
                 RegisterStep.Create("Terminator", typeof(Terminator), "desc")
-        
-            }, new List<RemoveStep>(), new List<ReplaceBehavior>());
+
+            }, new List<RemoveStep>(), new List<ReplaceStep>());
 
 
             var model = builder.Build();
@@ -59,70 +226,95 @@
             Assert.AreEqual(3, model.Count);
         }
 
-        public class RootContext : BehaviorContext
+        interface IParentContext : IBehaviorContext { }
+
+        class ParentContext : BehaviorContext, IParentContext
         {
-            public RootContext(BehaviorContext parentContext)
+            public ParentContext(IBehaviorContext parentContext)
                 : base(parentContext)
             {
             }
         }
 
-        public class ChildContext : RootContext
+        interface IChildContext : IParentContext { }
+
+        class ChildContext : ParentContext, IChildContext
         {
-            public ChildContext(BehaviorContext parentContext)
-                : base(parentContext)
-            {
-            }
-        }
-        public class ChildContextReachableButNotInheritingFromRootContext : BehaviorContext
-        {
-            public ChildContextReachableButNotInheritingFromRootContext(BehaviorContext parentContext)
+            public ChildContext(IBehaviorContext parentContext)
                 : base(parentContext)
             {
             }
         }
 
-        public class RootToChildConnector : StageConnector<RootContext, ChildContext>
+        interface IChildContextNotInheritedFromParentContext : IBehaviorContext { }
+
+        class ChildContextNotInheritedFromParentContext : BehaviorContext
         {
-            public override Task Invoke(RootContext context, Func<ChildContext, Task> next)
+            public ChildContextNotInheritedFromParentContext(IBehaviorContext parentContext)
+                : base(parentContext)
+            {
+            }
+        }
+
+        class ParentContextToChildContextConnector : StageConnector<IParentContext, IChildContext>
+        {
+            public override Task Invoke(IParentContext context, Func<IChildContext, Task> next)
             {
                 throw new NotImplementedException();
             }
         }
 
-        public class Terminator : PipelineTerminator<ChildContext>
+        class Terminator : PipelineTerminator<IChildContext>
         {
-            protected override Task Terminate(ChildContext context)
-            {
-                throw new NotImplementedException();
-            }
-        }
-        public class RootToChild2Connector : StageConnector<RootContext, ChildContextReachableButNotInheritingFromRootContext>
-        {
-            public override Task Invoke(RootContext context, Func<ChildContextReachableButNotInheritingFromRootContext, Task> next)
+            protected override Task Terminate(IChildContext context)
             {
                 throw new NotImplementedException();
             }
         }
 
-        public class RootBehavior : Behavior<RootContext>
+        class ParentContextToChildContextNotInheritedFromParentContextConnector : StageConnector<IParentContext, IChildContextNotInheritedFromParentContext>
         {
-            public override Task Invoke(RootContext context, Func<Task> next)
+            public override Task Invoke(IParentContext context, Func<IChildContextNotInheritedFromParentContext, Task> next)
             {
                 throw new NotImplementedException();
             }
         }
 
-        public class ChildBehavior : Behavior<ChildContext>
+        class SomeBehaviorOfParentContext : Behavior<IParentContext>
         {
-            public override Task Invoke(ChildContext context, Func<Task> next)
+            public override Task Invoke(IParentContext context, Func<Task> next)
             {
                 throw new NotImplementedException();
             }
         }
-        public class NonReachableChildBehavior : Behavior<ChildContextReachableButNotInheritingFromRootContext>
+
+        class AnotherBehaviorOfParentContext : Behavior<IParentContext>
         {
-            public override Task Invoke(ChildContextReachableButNotInheritingFromRootContext context, Func<Task> next)
+            public override Task Invoke(IParentContext context, Func<Task> next)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        class RootBehavior : Behavior<IParentContext>
+        {
+            public override Task Invoke(IParentContext context, Func<Task> next)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        class ChildBehaviorOfChildContext : Behavior<IChildContext>
+        {
+            public override Task Invoke(IChildContext context, Func<Task> next)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        class ChildBehaviorOfChildContextNotInheritedFromParentContext : Behavior<IChildContextNotInheritedFromParentContext>
+        {
+            public override Task Invoke(IChildContextNotInheritedFromParentContext context, Func<Task> next)
             {
                 throw new NotImplementedException();
             }

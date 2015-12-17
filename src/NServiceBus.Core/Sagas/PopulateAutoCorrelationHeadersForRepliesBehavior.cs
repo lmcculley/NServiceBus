@@ -5,19 +5,18 @@
     using NServiceBus.OutgoingPipeline;
     using NServiceBus.Pipeline;
     using NServiceBus.Pipeline.Outgoing;
-    using NServiceBus.TransportDispatch;
     using NServiceBus.Transports;
 
-    class PopulateAutoCorrelationHeadersForRepliesBehavior : Behavior<OutgoingReplyContext>
+    class PopulateAutoCorrelationHeadersForRepliesBehavior : Behavior<IOutgoingReplyContext>
     {
-        public override Task Invoke(OutgoingReplyContext context, Func<Task> next)
+        public override Task Invoke(IOutgoingReplyContext context, Func<Task> next)
         {
             FlowDetailsForRequestingSagaToOutgoingMessage(context);
 
             return next();
         }
 
-        static void FlowDetailsForRequestingSagaToOutgoingMessage(OutgoingReplyContext context)
+        static void FlowDetailsForRequestingSagaToOutgoingMessage(IOutgoingReplyContext context)
         {
             IncomingMessage incomingMessage;
 
@@ -33,7 +32,7 @@
 
                 State state;
 
-                if (context.TryGet(out state))
+                if (context.Extensions.TryGet(out state))
                 {
                     sagaId = state.SagaIdToUse;
                     sagaType = state.SagaTypeToUse;
@@ -41,12 +40,12 @@
 
                 if (!string.IsNullOrEmpty(sagaId))
                 {
-                    context.SetHeader(Headers.SagaId, sagaId);
+                    context.Headers[Headers.SagaId] = sagaId;
                 }
 
                 if (!string.IsNullOrEmpty(sagaType))
                 {
-                    context.SetHeader(Headers.SagaType, sagaType);
+                    context.Headers[Headers.SagaType] = sagaType;
                 }
             }
         }

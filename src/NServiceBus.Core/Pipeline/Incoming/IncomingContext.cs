@@ -1,92 +1,138 @@
-﻿namespace NServiceBus.Pipeline.Contexts
+namespace NServiceBus
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    using NServiceBus.Extensibility;
-    using NServiceBus.Transports;
-    using NServiceBus.Unicast;
-    using PublishOptions = NServiceBus.PublishOptions;
-    using ReplyOptions = NServiceBus.ReplyOptions;
-    using SendOptions = NServiceBus.SendOptions;
+    using NServiceBus.Pipeline;
+    using NServiceBus.Pipeline.Contexts;
 
     /// <summary>
-    /// The abstract base context for everything after the transport receive phase.
+    /// The base interface for everything after the transport receive phase.
     /// </summary>
-    public abstract class IncomingContext : BehaviorContext, IMessageProcessingContext
+    public abstract class IncomingContext : BehaviorContext, IIncomingContext
     {
         /// <summary>
-        /// Initializes a new instance of <see cref="IncomingContext" />.
+        /// Creates a new instance of an incoming context.
         /// </summary>
-        protected IncomingContext(BehaviorContext parentContext)
+        /// <param name="messageId">The message id.</param>
+        /// <param name="replyToAddress">The reply to address.</param>
+        /// <param name="headers">The headers.</param>
+        /// <param name="parentContext">The parent context.</param>
+        protected IncomingContext(string messageId, string replyToAddress, IReadOnlyDictionary<string, string> headers, IBehaviorContext parentContext)
             : base(parentContext)
         {
+
+            MessageId = messageId;
+            ReplyToAddress = replyToAddress;
+            MessageHeaders = headers;
         }
 
-        /// <inheritdoc />
-        public ContextBag Extensions => this;
+        /// <summary>
+        /// The Id of the currently processed message.
+        /// </summary>
+        public string MessageId { get; }
 
-        /// <inheritdoc />
-        public string MessageId => Get<IncomingMessage>().MessageId;
+        /// <summary>
+        /// The address of the endpoint that sent the current message being handled.
+        /// </summary>
+        public string ReplyToAddress { get; }
 
-        /// <inheritdoc />
-        public string ReplyToAddress => Get<IncomingMessage>().GetReplyToAddress();
+        /// <summary>
+        /// Gets the list of key/value pairs found in the header of the message.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> MessageHeaders { get; }
 
-        /// <inheritdoc />
-        public IReadOnlyDictionary<string, string> MessageHeaders => Get<IncomingMessage>().Headers;
-
-        /// <inheritdoc />
-        public Task SendAsync(object message, SendOptions options)
+        /// <summary>
+        /// Sends the provided message.
+        /// </summary>
+        /// <param name="message">The message to send.</param>
+        /// <param name="options">The options for the send.</param>
+        public Task Send(object message, SendOptions options)
         {
-            return BusOperationsBehaviorContext.SendAsync(this, message, options);
+            return BusOperations.Send(this, message, options);
         }
 
-        /// <inheritdoc />
-        public Task SendAsync<T>(Action<T> messageConstructor, SendOptions options)
+        /// <summary>
+        /// Instantiates a message of type T and sends it.
+        /// </summary>
+        /// <typeparam name="T">The type of message, usually an interface.</typeparam>
+        /// <param name="messageConstructor">An action which initializes properties of the message.</param>
+        /// <param name="options">The options for the send.</param>
+        public Task Send<T>(Action<T> messageConstructor, SendOptions options)
         {
-            return BusOperationsBehaviorContext.SendAsync(this, messageConstructor, options);
+            return BusOperations.Send(this, messageConstructor, options);
         }
 
-        /// <inheritdoc />
-        public Task PublishAsync(object message, PublishOptions options)
+        /// <summary>
+        ///  Publish the message to subscribers.
+        /// </summary>
+        /// <param name="message">The message to publish.</param>
+        /// <param name="options">The options for the publish.</param>
+        public Task Publish(object message, PublishOptions options)
         {
-            return BusOperationsBehaviorContext.PublishAsync(this, message, options);
+            return BusOperations.Publish(this, message, options);
         }
 
-        /// <inheritdoc />
-        public Task PublishAsync<T>(Action<T> messageConstructor, PublishOptions publishOptions)
+        /// <summary>
+        /// Instantiates a message of type T and publishes it.
+        /// </summary>
+        /// <typeparam name="T">The type of message, usually an interface.</typeparam>
+        /// <param name="messageConstructor">An action which initializes properties of the message.</param>
+        /// <param name="publishOptions">Specific options for this event.</param>
+        public Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions)
         {
-            return BusOperationsBehaviorContext.PublishAsync(this, messageConstructor, publishOptions);
+            return BusOperations.Publish(this, messageConstructor, publishOptions);
         }
 
-        /// <inheritdoc />
-        public Task SubscribeAsync(Type eventType, SubscribeOptions options)
+        /// <summary>
+        /// Subscribes to receive published messages of the specified type.
+        /// This method is only necessary if you turned off auto-subscribe.
+        /// </summary>
+        /// <param name="eventType">The type of event to subscribe to.</param>
+        /// <param name="options">Options for the subscribe.</param>
+        public Task Subscribe(Type eventType, SubscribeOptions options)
         {
-            return BusOperationsBehaviorContext.SubscribeAsync(this, eventType, options);
+            return BusOperations.Subscribe(this, eventType, options);
         }
 
-        /// <inheritdoc />
-        public Task UnsubscribeAsync(Type eventType, UnsubscribeOptions options)
+        /// <summary>
+        /// Unsubscribes to receive published messages of the specified type.
+        /// </summary>
+        /// <param name="eventType">The type of event to unsubscribe to.</param>
+        /// <param name="options">Options for the subscribe.</param>
+        public Task Unsubscribe(Type eventType, UnsubscribeOptions options)
         {
-            return BusOperationsBehaviorContext.UnsubscribeAsync(this, eventType, options);
+            return BusOperations.Unsubscribe(this, eventType, options);
         }
 
-        /// <inheritdoc />
-        public Task ReplyAsync(object message, ReplyOptions options)
+        /// <summary>
+        /// Sends the message to the endpoint which sent the message currently being handled.
+        /// </summary>
+        /// <param name="message">The message to send.</param>
+        /// <param name="options">Options for this reply.</param>
+        public Task Reply(object message, ReplyOptions options)
         {
-            return BusOperationsBehaviorContext.ReplyAsync(this, message, options);
+            return BusOperations.Reply(this, message, options);
         }
 
-        /// <inheritdoc />
-        public Task ReplyAsync<T>(Action<T> messageConstructor, ReplyOptions options)
+        ///  <summary>
+        /// Instantiates a message of type T and performs a regular <see cref="Reply"/>.
+        /// </summary>
+        /// <typeparam name="T">The type of message, usually an interface.</typeparam>
+        /// <param name="messageConstructor">An action which initializes properties of the message.</param>
+        /// <param name="options">Options for this reply.</param>
+        public Task Reply<T>(Action<T> messageConstructor, ReplyOptions options)
         {
-            return BusOperationsBehaviorContext.ReplyAsync(this, messageConstructor, options);
+            return BusOperations.Reply(this, messageConstructor, options);
         }
 
-        /// <inheritdoc />
-        public Task ForwardCurrentMessageToAsync(string destination)
+        /// <summary>
+        /// Forwards the current message being handled to the destination maintaining
+        /// all of its transport-level properties and headers.
+        /// </summary>
+        public Task ForwardCurrentMessageTo(string destination)
         {
-            return BusOperationsIncomingContext.ForwardCurrentMessageToAsync(this, destination);
+            return IncomingBusOperations.ForwardCurrentMessageTo(this, destination);
         }
     }
 }

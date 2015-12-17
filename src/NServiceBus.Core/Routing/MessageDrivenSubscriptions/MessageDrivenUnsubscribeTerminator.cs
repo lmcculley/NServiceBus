@@ -7,23 +7,22 @@
     using NServiceBus.Logging;
     using NServiceBus.Pipeline;
     using NServiceBus.Routing;
-    using NServiceBus.Routing.MessageDrivenSubscriptions;
     using NServiceBus.Transports;
     using NServiceBus.Unicast.Queuing;
     using NServiceBus.Unicast.Transport;
 
-    class MessageDrivenUnsubscribeTerminator : PipelineTerminator<UnsubscribeContext>
+    class MessageDrivenUnsubscribeTerminator : PipelineTerminator<IUnsubscribeContext>
     {
-        public MessageDrivenUnsubscribeTerminator(SubscriptionRouter subscriptionRouter, string replyToAddress, EndpointName endpointName, IDispatchMessages dispatcher, bool legacyMode)
+        public MessageDrivenUnsubscribeTerminator(SubscriptionRouter subscriptionRouter, string replyToAddress, Endpoint endpoint, IDispatchMessages dispatcher, bool legacyMode)
         {
             this.subscriptionRouter = subscriptionRouter;
             this.replyToAddress = replyToAddress;
-            this.endpointName = endpointName;
+            this.endpoint = endpoint;
             this.dispatcher = dispatcher;
             this.legacyMode = legacyMode;
         }
 
-        protected override Task Terminate(UnsubscribeContext context)
+        protected override Task Terminate(IUnsubscribeContext context)
         {
             var eventType = context.EventType;
 
@@ -45,10 +44,10 @@
                 else
                 {
                     unsubscribeMessage.Headers[Headers.SubscriberTransportAddress] = replyToAddress;
-                    unsubscribeMessage.Headers[Headers.SubscriberEndpoint] = endpointName.ToString();
+                    unsubscribeMessage.Headers[Headers.SubscriberEndpoint] = endpoint.ToString();
                 }
 
-                unsubscribeTasks.Add(SendUnsubscribeMessageWithRetries(publisherAddress, unsubscribeMessage, eventType.AssemblyQualifiedName, context));
+                unsubscribeTasks.Add(SendUnsubscribeMessageWithRetries(publisherAddress, unsubscribeMessage, eventType.AssemblyQualifiedName, context.Extensions));
             }
 
             return Task.WhenAll(unsubscribeTasks.ToArray());
@@ -93,7 +92,7 @@
 
         SubscriptionRouter subscriptionRouter;
         string replyToAddress;
-        readonly EndpointName endpointName;
+        readonly Endpoint endpoint;
         IDispatchMessages dispatcher;
         readonly bool legacyMode;
 

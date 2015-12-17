@@ -3,9 +3,8 @@
     using System;
     using System.Threading.Tasks;
     using NServiceBus.Pipeline;
-    using NServiceBus.Routing.Legacy;
 
-    class ProcessedMessageCounterBehavior : Behavior<PhysicalMessageProcessingContext>
+    class ProcessedMessageCounterBehavior : Behavior<IIncomingPhysicalMessageContext>
     {
         ReadyMessageSender readyMessageSender;
 
@@ -14,9 +13,9 @@
             this.readyMessageSender = readyMessageSender;
         }
 
-        public override async Task Invoke(PhysicalMessageProcessingContext context, Func<Task> next)
+        public override async Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
         {
-            await next();
+            await next().ConfigureAwait(false);
             readyMessageSender.MessageProcessed(context.Message.Headers);
         }
     }

@@ -4,6 +4,7 @@
     using System.Threading.Tasks;
     using NServiceBus.AcceptanceTesting;
     using NServiceBus.AcceptanceTests.EndpointTemplates;
+    using NServiceBus.AcceptanceTests.ScenarioDescriptors;
     using NServiceBus.Features;
     using NUnit.Framework;
 
@@ -12,20 +13,23 @@
         [Test]
         public async Task Bus_Defer_should_throw()
         {
-            var context = await Scenario.Define<Context>()
+            await Scenario.Define<Context>()
                     .WithEndpoint<Endpoint>(b => b.When((bus, c) =>
                     {
                         var options = new SendOptions();
 
                         options.RouteToLocalEndpointInstance();
 
-                        return bus.SendAsync(new MyMessage(), options);
+                        return bus.Send(new MyMessage(), options);
                     }))
                     .Done(c => c.ExceptionThrown || c.SecondMessageReceived)
+                    .Repeat(r => r.For<AllTransportsWithoutNativeDeferral>())
+                    .Should(c =>
+                    {
+                        Assert.AreEqual(true, c.ExceptionThrown);
+                        Assert.AreEqual(false, c.SecondMessageReceived);
+                    })
                     .Run();
-
-            Assert.AreEqual(true, context.ExceptionThrown);
-            Assert.AreEqual(false, context.SecondMessageReceived);
         }
 
         public class Context : ScenarioContext
@@ -53,7 +57,7 @@
                         opts.DelayDeliveryWith(TimeSpan.FromSeconds(5));
                         opts.RouteToLocalEndpointInstance();
 
-                        await context.SendAsync(new MyOtherMessage(), opts);
+                        await context.Send(new MyOtherMessage(), opts);
                     }
                     catch (Exception x)
                     {

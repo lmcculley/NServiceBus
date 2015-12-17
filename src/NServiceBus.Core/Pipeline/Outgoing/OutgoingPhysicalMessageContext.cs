@@ -1,25 +1,27 @@
-﻿namespace NServiceBus.OutgoingPipeline
+﻿namespace NServiceBus
 {
     using System.Collections.Generic;
+    using NServiceBus.OutgoingPipeline;
     using NServiceBus.Pipeline.OutgoingPipeline;
     using NServiceBus.Routing;
 
     /// <summary>
     /// Represent the part of the outgoing pipeline where the message has been serialized to a byte[].
     /// </summary>
-    public class OutgoingPhysicalMessageContext : OutgoingContext
+    public class OutgoingPhysicalMessageContext : OutgoingContext, IOutgoingPhysicalMessageContext
     {
-
         /// <summary>
-        /// Initializes an instance of the context.
+        /// Creates a new instance of an outgoing physical message context.
         /// </summary>
-        public OutgoingPhysicalMessageContext(byte[] body, IReadOnlyCollection<RoutingStrategy> routingStrategies, OutgoingLogicalMessageContext parentContext)
-            : base(parentContext)
+        /// <param name="body">The body of the message.</param>
+        /// <param name="routingStrategies">The routing stragegies.</param>
+        /// <param name="parentContext">The parent context.</param>
+        public OutgoingPhysicalMessageContext(byte[] body, IReadOnlyCollection<RoutingStrategy> routingStrategies, IOutgoingLogicalMessageContext parentContext)
+            : base(parentContext.MessageId, parentContext.Headers, parentContext)
         {
             Body = body;
             RoutingStrategies = routingStrategies;
         }
-
 
         /// <summary>
         /// The serialized body of the outgoing message.

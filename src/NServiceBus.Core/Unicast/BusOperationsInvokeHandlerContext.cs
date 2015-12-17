@@ -1,7 +1,6 @@
-namespace NServiceBus.Unicast
+namespace NServiceBus
 {
     using System.Threading.Tasks;
-    using NServiceBus.Pipeline;
     using NServiceBus.Pipeline.Contexts;
     using NServiceBus.Routing;
     using NServiceBus.Settings;
@@ -10,21 +9,17 @@ namespace NServiceBus.Unicast
 
     static class BusOperationsInvokeHandlerContext
     {
-        /// <summary>
-        /// Moves the message being handled to the back of the list of available 
-        /// messages so it can be handled later.
-        /// </summary>
-        public static async Task HandleCurrentMessageLaterAsync(InvokeHandlerContext context)
+        public static Task HandleCurrentMessageLater(IInvokeHandlerContext context)
         {
-            if (context.handleCurrentMessageLaterWasCalled)
+            if (context.HandleCurrentMessageLaterWasCalled)
             {
-                return;
+                return TaskEx.Completed;
             }
 
-            var messageBeingProcessed = context.Get<IncomingMessage>();
+            var messageBeingProcessed = context.Extensions.Get<IncomingMessage>();
             var settings = context.Builder.Build<ReadOnlySettings>();
 
-            var pipeline = new PipelineBase<RoutingContext>(
+            var pipeline = new PipelineBase<IRoutingContext>(
                 context.Builder,
                 settings,
                 settings.Get<PipelineConfiguration>().MainPipeline);
@@ -36,10 +31,7 @@ namespace NServiceBus.Unicast
 
             var routingContext = new RoutingContext(outgoingMessage, new UnicastRoutingStrategy(settings.LocalAddress()), context);
 
-            await pipeline.Invoke(routingContext).ConfigureAwait(false);
-
-            context.handleCurrentMessageLaterWasCalled = true;
-            context.DoNotContinueDispatchingCurrentMessageToHandlers();
+            return pipeline.Invoke(routingContext);
         }
     }
 }

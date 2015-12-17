@@ -5,7 +5,7 @@
     using Pipeline;
 
 
-    class CriticalTimeBehavior : Behavior<PhysicalMessageProcessingContext>
+    class CriticalTimeBehavior : Behavior<IIncomingPhysicalMessageContext>
     {
         CriticalTimeCalculator criticalTimeCounter;
 
@@ -14,13 +14,13 @@
             this.criticalTimeCounter = criticalTimeCounter;
         }
 
-        public override async Task Invoke(PhysicalMessageProcessingContext context, Func<Task> next)
+        public override async Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
         {
             await next().ConfigureAwait(false);
 
             ProcessingStatisticsBehavior.State state;
 
-            if (!context.TryGet(out state))
+            if (!context.Extensions.TryGet(out state))
             {
                 return;
             }

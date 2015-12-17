@@ -17,7 +17,7 @@ namespace NServiceBus.Routing.MessageDrivenSubscriptions
         /// </summary>
         /// <param name="publisher">Publisher endpoint.</param>
         /// <param name="eventType">Event type.</param>
-        public void AddStatic(EndpointName publisher, Type eventType)
+        public void AddStatic(Endpoint publisher, Type eventType)
         {
             rules.Add(new Rule(type => StaticTypeRule(type, eventType, new PublisherAddress(publisher)), $"{eventType.FullName} -> {publisher}"));
         }
@@ -38,7 +38,7 @@ namespace NServiceBus.Routing.MessageDrivenSubscriptions
             return distinctPublishers;
         }
 
-        private static PublisherAddress StaticTypeRule(Type typeBeingQueried, Type configuredType, PublisherAddress configuredAddress)
+        static PublisherAddress StaticTypeRule(Type typeBeingQueried, Type configuredType, PublisherAddress configuredAddress)
         {
             return typeBeingQueried == configuredType
                 ? configuredAddress
@@ -51,12 +51,12 @@ namespace NServiceBus.Routing.MessageDrivenSubscriptions
         /// <param name="publisher">Publisher endpoint.</param>
         /// <param name="eventAssembly">Assembly containing events.</param>
         /// <param name="eventNamespace">Optional namespace containing events.</param>
-        public void AddStatic(EndpointName publisher, Assembly eventAssembly, string eventNamespace = null)
+        public void AddStatic(Endpoint publisher, Assembly eventAssembly, string eventNamespace = null)
         {
             rules.Add(new Rule(type => StaticAssemblyRule(type, eventAssembly, eventNamespace, new PublisherAddress(publisher)), $"{eventAssembly.GetName().Name}/{eventNamespace ?? "*"} -> {publisher}"));
         }
 
-        private static PublisherAddress StaticAssemblyRule(Type typeBeingQueried, Assembly configuredAssembly, string configuredNamespace, PublisherAddress configuredAddress)
+        static PublisherAddress StaticAssemblyRule(Type typeBeingQueried, Assembly configuredAssembly, string configuredNamespace, PublisherAddress configuredAddress)
         {
             return typeBeingQueried.Assembly == configuredAssembly && (configuredNamespace == null || configuredNamespace.Equals(typeBeingQueried.Namespace, StringComparison.InvariantCultureIgnoreCase))
                 ? configuredAddress

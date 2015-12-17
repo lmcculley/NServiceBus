@@ -1,8 +1,10 @@
-﻿namespace NServiceBus.Routing.MessageDrivenSubscriptions
+﻿namespace NServiceBus
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using NServiceBus.Routing;
+    using NServiceBus.Routing.MessageDrivenSubscriptions;
     using NServiceBus.Transports;
 
     class SubscriptionRouter
@@ -16,11 +18,9 @@
 
         public IEnumerable<string> GetAddressesForEventType(Type messageType)
         {
-            var publisherAddresses = publishers
+            return publishers
                 .GetPublisherFor(messageType).SelectMany(p => p
                     .Resolve(e => endpointInstances.FindInstances(e), i => physicalAddresses.GetTransportAddress(i)));
-
-            return publisherAddresses;
         }
 
         Publishers publishers;

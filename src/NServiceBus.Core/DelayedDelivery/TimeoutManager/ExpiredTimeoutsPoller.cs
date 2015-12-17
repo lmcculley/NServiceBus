@@ -1,9 +1,8 @@
-namespace NServiceBus.DelayedDelivery.TimeoutManager
+namespace NServiceBus
 {
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using NServiceBus.CircuitBreakers;
     using NServiceBus.Extensibility;
     using NServiceBus.Logging;
     using NServiceBus.Routing;
@@ -57,19 +56,17 @@ namespace NServiceBus.DelayedDelivery.TimeoutManager
 
         async Task Poll(CancellationToken cancellationToken)
         {
-            try
+            while (!cancellationToken.IsCancellationRequested)
             {
-                await InnerPoll(cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn("Failed to fetch timeouts from the timeout storage", ex);
-                await circuitBreaker.Failure(ex).ConfigureAwait(false);
-            }
-
-            if (!cancellationToken.IsCancellationRequested)
-            {
-                await Poll(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await InnerPoll(cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn("Failed to fetch timeouts from the timeout storage", ex);
+                    await circuitBreaker.Failure(ex).ConfigureAwait(false);
+                }
             }
         }
 

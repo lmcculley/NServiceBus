@@ -5,7 +5,6 @@ namespace NServiceBus
     using System.Linq;
     using System.Text;
     using Config;
-    using Encryption.Rijndael;
     using NServiceBus.Encryption;
     using NServiceBus.Logging;
     using NServiceBus.ObjectBuilder;
@@ -24,7 +23,7 @@ namespace NServiceBus
         /// <param name="config">The <see cref="BusConfiguration"/> instance to apply the settings to.</param>
         public static void RijndaelEncryptionService(this BusConfiguration config)
         {
-            Guard.AgainstNull("config", config);
+            Guard.AgainstNull(nameof(config), config);
             RegisterEncryptionService(config, context =>
             {
                 var section = context.Build<ReadOnlySettings>()
@@ -98,8 +97,8 @@ namespace NServiceBus
         /// </summary>
         public static void RijndaelEncryptionService(this BusConfiguration config, string encryptionKeyIdentifier, byte[] encryptionKey, IList<byte[]> decryptionKeys = null)
         {
-            if (null == encryptionKeyIdentifier) throw new ArgumentNullException("encryptionKeyIdentifier");
-            if (null == encryptionKey) throw new ArgumentNullException("encryptionKey");
+            Guard.AgainstNull("config", config);
+            Guard.AgainstNullAndEmpty("encryptionKey", encryptionKey);
 
             decryptionKeys = decryptionKeys ?? new List<byte[]>();
 
@@ -129,14 +128,14 @@ namespace NServiceBus
         {
             if (expiredKeys.Count != expiredKeys.Distinct().Count())
             {
-                throw new ArgumentException("Overlapping keys defined. Please ensure that no keys overlap.", "expiredKeys");
+                throw new ArgumentException("Overlapping keys defined. Please ensure that no keys overlap.", nameof(expiredKeys));
             }
             for (var index = 0; index < expiredKeys.Count; index++)
             {
                 var encryptionKey = expiredKeys[index];
                 if (string.IsNullOrWhiteSpace(encryptionKey))
                 {
-                    throw new ArgumentException($"Empty encryption key detected in position {index}.", "expiredKeys");
+                    throw new ArgumentException($"Empty encryption key detected in position {index}.", nameof(expiredKeys));
                 }
             }
         }
@@ -153,6 +152,7 @@ namespace NServiceBus
                 expiredKeys
                 );
         }
+
         /// <summary>
         /// Register a custom <see cref="IEncryptionService"/> to be used for message encryption.
         /// </summary>
@@ -160,7 +160,7 @@ namespace NServiceBus
         /// <param name="func">A delegate that constructs the insatnce of <see cref="IEncryptionService"/> to use for all encryption.</param>
         public static void RegisterEncryptionService(this BusConfiguration config, Func<IBuilder, IEncryptionService> func)
         {
-            Guard.AgainstNull("config", config);
+            Guard.AgainstNull(nameof(config), config);
             config.Settings.Set("EncryptionServiceConstructor", func);
         }
 

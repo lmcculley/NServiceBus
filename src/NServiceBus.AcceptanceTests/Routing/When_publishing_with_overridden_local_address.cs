@@ -15,11 +15,11 @@
         {
             await Scenario.Define<Context>()
                 .WithEndpoint<Publisher>(b =>
-                    b.When(c => c.Subscriber1Subscribed, bus => bus.PublishAsync(new MyEvent()))
+                    b.When(c => c.Subscriber1Subscribed, bus => bus.Publish(new MyEvent()))
                     )
                 .WithEndpoint<Subscriber1>(b => b.When(async (bus, context) =>
                     {
-                        await bus.SubscribeAsync<MyEvent>();
+                        await bus.Subscribe<MyEvent>();
 
                         if (context.HasNativePubSubSupport)
                             context.Subscriber1Subscribed = true;
@@ -57,7 +57,7 @@
                 EndpointSetup<DefaultServer>(builder =>
                 {
                     builder.DisableFeature<AutoSubscribe>();
-                    //builder.OverrideLocalAddress("myinputqueue"); Fix in 133
+                    //builder.OverrideLocalAddress("myInputQueue"); Fix in 133
                 })
                     .AddMapping<MyEvent>(typeof(Publisher));
             }

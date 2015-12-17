@@ -6,11 +6,11 @@ namespace NServiceBus
     using System.Threading.Tasks;
     using NServiceBus.Config.ConfigurationSource;
     using NServiceBus.Features;
+    using NServiceBus.Installation;
     using NServiceBus.ObjectBuilder;
     using NServiceBus.ObjectBuilder.Common;
     using NServiceBus.Pipeline;
     using NServiceBus.Settings;
-    using NServiceBus.Utils.Reflection;
 
     class InitializableEndpoint : IInitializableEndpoint
     {
@@ -30,33 +30,84 @@ namespace NServiceBus
 
         public Task<IStartableEndpoint> Initialize()
         {
-            WireUpConfigSectionOverrides();
+            RegisterCriticalErrorHandler();
+            var concreteTypes = settings.GetAvailableTypes()
+                .Where(IsConcrete)
+                .ToList();
+            WireUpConfigSectionOverrides(concreteTypes);
 
-            var featureActivator = new FeatureActivator(settings);
+            var featureActivator = BuildFeatureActivator(concreteTypes);
 
-            container.RegisterSingleton(featureActivator);
+            ConfigureStartsAndStops(concreteTypes);
 
-            ForAllTypes<Feature>(TypesToScan, t => featureActivator.Add(t.Construct<Feature>()));
+            ConfigRunBeforeIsFinalized(concreteTypes);
 
-            ForAllTypes<IWantToRunWhenBusStartsAndStops>(TypesToScan, t => container.ConfigureComponent(t, DependencyLifecycle.InstancePerCall));
-
-            ActivateAndInvoke<IFinalizeConfiguration>(TypesToScan, t => t.Run(settings));
-
-            var featureStats = featureActivator.SetupFeatures(new FeatureConfigurationContext(settings, container, pipelineSettings));
+            var featureStats = featureActivator.SetupFeatures(container, pipelineSettings);
 
             pipelineConfiguration.RegisterBehaviorsInContainer(settings, container);
 
             container.RegisterSingleton(featureStats);
 
-            featureActivator.RegisterStartupTasks(container);
-
-            ReportFeatures(featureStats);
+            DisplayDiagnosticsForFeatures.Run(featureStats);
+            WireUpInstallers(concreteTypes);
 
             var startableEndpoint = new StartableEndpoint(settings, builder, featureActivator, pipelineConfiguration, startables);
             return Task.FromResult<IStartableEndpoint>(startableEndpoint);
         }
 
-        IList<Type> TypesToScan => settings.GetAvailableTypes();
+        static bool IsConcrete(Type x)
+        {
+            return !x.IsAbstract && ! x.IsInterface;
+        }
+
+        void ConfigRunBeforeIsFinalized(IEnumerable<Type> concreteTypes)
+        {
+            foreach (var instanceToInvoke in concreteTypes.Where(IsIWantToRunBeforeConfigurationIsFinalized)
+                .Select(type => (IWantToRunBeforeConfigurationIsFinalized) Activator.CreateInstance(type)))
+            {
+                instanceToInvoke.Run(settings);
+            }
+        }
+
+        static bool IsIWantToRunBeforeConfigurationIsFinalized(Type type)
+        {
+            return typeof(IWantToRunBeforeConfigurationIsFinalized).IsAssignableFrom(type);
+        }
+
+        void ConfigureStartsAndStops(IEnumerable<Type> concreteTypes)
+        {
+            foreach (var type in concreteTypes.Where(IsIWantToRunWhenBusStartsAndStops))
+            {
+                container.ConfigureComponent(type, DependencyLifecycle.InstancePerCall);
+            }
+        }
+
+        static bool IsIWantToRunWhenBusStartsAndStops(Type type)
+        {
+            return typeof(IWantToRunWhenBusStartsAndStops).IsAssignableFrom(type);
+        }
+
+        FeatureActivator BuildFeatureActivator(IEnumerable<Type> concreteTypes)
+        {
+            var featureActivator = new FeatureActivator(settings);
+            foreach (var type in concreteTypes.Where(IsFeature))
+            {
+                featureActivator.Add(type.Construct<Feature>());
+            }
+            return featureActivator;
+        }
+
+        static bool IsFeature(Type type)
+        {
+            return typeof(Feature).IsAssignableFrom(type);
+        }
+
+        void RegisterCriticalErrorHandler()
+        {
+            CriticalErrorAction errorAction;
+            settings.TryGet("onCriticalErrorAction", out errorAction);
+            container.ConfigureComponent(() => new CriticalError(errorAction), DependencyLifecycle.SingleInstance);
+        }
 
         void RunUserRegistrations(List<Action<IConfigureComponents>> registrations)
         {
@@ -80,53 +131,47 @@ namespace NServiceBus
                 .ConfigureProperty(c => c.Container, containerToAdapt);
         }
 
-        void WireUpConfigSectionOverrides()
+        void WireUpConfigSectionOverrides(IEnumerable<Type> concreteTypes)
         {
-            foreach (var t in TypesToScan.Where(t => t.GetInterfaces().Any(IsGenericConfigSource)))
+            foreach (var type in concreteTypes.Where(ImplementsIProvideConfiguration))
             {
-                container.ConfigureComponent(t, DependencyLifecycle.InstancePerCall);
+                container.ConfigureComponent(type, DependencyLifecycle.InstancePerCall);
             }
         }
 
-        static void ReportFeatures(FeaturesReport featureStats)
+        static bool ImplementsIProvideConfiguration(Type type)
         {
-            var reporter = new DisplayDiagnosticsForFeatures();
-            reporter.Run(featureStats);
+            return type.GetInterfaces().Any(IsIProvideConfiguration);
         }
 
-        static void ForAllTypes<T>(IEnumerable<Type> types, Action<Type> action) where T : class
+        static bool IsIProvideConfiguration(Type type)
         {
-            // ReSharper disable HeapView.SlowDelegateCreation
-            foreach (var type in types.Where(t => typeof(T).IsAssignableFrom(t) && !(t.IsAbstract || t.IsInterface)))
-            {
-                action(type);
-            }
-            // ReSharper restore HeapView.SlowDelegateCreation
-        }
-
-        static void ActivateAndInvoke<T>(IList<Type> types, Action<T> action) where T : class
-        {
-            ForAllTypes<T>(types, t =>
-            {
-                var instanceToInvoke = (T)Activator.CreateInstance(t);
-                action(instanceToInvoke);
-            });
-        }
-
-        static bool IsGenericConfigSource(Type t)
-        {
-            if (!t.IsGenericType)
+            if (!type.IsGenericType)
             {
                 return false;
             }
 
-            var args = t.GetGenericArguments();
+            var args = type.GetGenericArguments();
             if (args.Length != 1)
             {
                 return false;
             }
 
-            return typeof(IProvideConfiguration<>).MakeGenericType(args).IsAssignableFrom(t);
+            return typeof(IProvideConfiguration<>).MakeGenericType(args)
+                .IsAssignableFrom(type);
+        }
+
+        void WireUpInstallers(IEnumerable<Type> concreteTypes)
+        {
+            foreach (var installerType in concreteTypes.Where(IsINeedToInstallSomething))
+            {
+                container.ConfigureComponent(installerType, DependencyLifecycle.InstancePerCall);
+            }
+        }
+
+        static bool IsINeedToInstallSomething(Type t)
+        {
+            return typeof(INeedToInstallSomething).IsAssignableFrom(t);
         }
 
         SettingsHolder settings;
@@ -134,6 +179,6 @@ namespace NServiceBus
         IConfigureComponents container;
         PipelineSettings pipelineSettings;
         PipelineConfiguration pipelineConfiguration;
-        readonly IReadOnlyCollection<IWantToRunWhenBusStartsAndStops> startables;
+        IReadOnlyCollection<IWantToRunWhenBusStartsAndStops> startables;
     }
 }

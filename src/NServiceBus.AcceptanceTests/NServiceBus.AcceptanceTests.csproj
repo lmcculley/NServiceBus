@@ -48,19 +48,6 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Messaging" />
-    <Reference Include="System.Reactive.Core">
-      <HintPath>..\packages\Rx-Core.2.2.5\lib\net45\System.Reactive.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Reactive.Interfaces">
-      <HintPath>..\packages\Rx-Interfaces.2.2.5\lib\net45\System.Reactive.Interfaces.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Reactive.Linq">
-      <HintPath>..\packages\Rx-Linq.2.2.5\lib\net45\System.Reactive.Linq.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Reactive.PlatformServices">
-      <HintPath>..\packages\Rx-PlatformServices.2.2.5\lib\net45\System.Reactive.PlatformServices.dll</HintPath>
-    </Reference>
     <Reference Include="System.Transactions" />
     <Reference Include="System.Web" />
     <Reference Include="System.Xml" />
@@ -69,6 +56,15 @@
   <ItemGroup>
     <Compile Include="Basic\When_extending_behavior_context.cs" />
     <Compile Include="Basic\When_registering_additional_deserializers.cs" />
+    <Compile Include="Basic\When_no_content_type.cs" />
+    <Compile Include="ConfigureInMemoryPersistence.cs" />
+    <Compile Include="Msmq\When_Audit_OverrideTimeToBeReceived_set_and_transactional_Msmq.cs" />
+    <Compile Include="Msmq\When_a_corrupted_message_is_received.cs" />
+    <Compile Include="Msmq\When_TimeToBeReceivedOnForwardedMessages_set_and_transactional_Msmq.cs" />
+    <Compile Include="Msmq\When_TimeToBeReceived_set_and_receivetransaction_Msmq.cs" />
+    <Compile Include="Msmq\When_TimeToBeReceived_set_and_DTC_Msmq.cs" />
+    <Compile Include="CriticalError\When_using_default_critical_error_handler.cs" />
+    <Compile Include="Msmq\When_publishing.cs" />
     <Compile Include="Msmq\When_setting_msmq_label_generator.cs" />
     <Compile Include="Basic\When_deferring_to_non_local.cs" />
     <Compile Include="DelayedDelivery\When_TimeoutManager_is_disabled.cs" />
@@ -120,7 +116,7 @@
     <Compile Include="Performance\TimeToBeReceived\When_TimeToBeReceived_has_not_expired.cs" />
     <Compile Include="Performance\TimeToBeReceived\When_TimeToBeReceived_has_expired.cs" />
     <Compile Include="DelayedDelivery\When_Deferring_a_message.cs" />
-    <Compile Include="Msmq\ConfigureMsmqTransport.cs" />
+    <Compile Include="ConfigureMsmqTransport.cs" />
     <Compile Include="Hosting\When_feature_overrides_hostid.cs" />
     <Compile Include="Reliability\Outbox\When_dispatching_forwarded_messages.cs" />
     <Compile Include="Reliability\Outbox\When_a_message_is_audited.cs" />
@@ -136,12 +132,16 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Routing\When_distributing_an_event.cs" />
+    <Compile Include="Msmq\When_publishing_with_authorizer.cs" />
+    <Compile Include="Msmq\When_unsubscribing_with_authorizer.cs" />
+    <Compile Include="Routing\When_broadcasting_a_command.cs" />
+    <Compile Include="Routing\When_publishing_an_interface.cs" />
     <Compile Include="Routing\When_publishing_to_a_legacy_endpoint.cs" />
     <Compile Include="Routing\When_publishing_from_sendonly.cs" />
     <Compile Include="MessageId\When_message_has_empty_id_header.cs" />
     <Compile Include="Routing\When_publishing_an_event_implementing_two_unrelated_interfaces.cs" />
     <Compile Include="ApiExtension\When_extending_the_publish_api.cs" />
-    <Compile Include="Routing\When_overriding_public_return_address.cs" />
+    <Compile Include="Routing\When_replying_to_message.cs" />
     <Compile Include="Sagas\When_forgetting_to_set_a_corr_property.cs" />
     <Compile Include="Sagas\When_auto_correlated_property_is_changed.cs" />
     <Compile Include="Sagas\When_updating_existing_correlation_property.cs" />
@@ -156,11 +156,10 @@
     <Compile Include="Sagas\When_receiving_that_should_start_a_saga_with_interception.cs" />
     <Compile Include="Sagas\When_sagas_cant_be_found.cs" />
     <Compile Include="Sagas\When_using_ReplyToOriginator.cs" />
-    <Compile Include="Msmq\When_individualization_is_enabled_for_msmq.cs" />
-    <Compile Include="ScaleOut\When_no_discriminator_is_available.cs" />
+    <Compile Include="Msmq\When_not_providing_user_discriminator.cs" />
     <Compile Include="ScaleOut\When_individualization_is_enabled.cs" />
     <Compile Include="Config\When_startup_is_complete.cs" />
-    <Compile Include="CriticalError\When_registering_a_custom_criticalErrorHandler.cs" />
+    <Compile Include="CriticalError\When_registering_custom_critical_error_handler.cs" />
     <Compile Include="DataBus\When_using_custom_IDataBus.cs" />
     <Compile Include="DeterministicGuid.cs" />
     <Compile Include="MessageId\When_message_has_no_id_header.cs" />
@@ -246,7 +245,7 @@
     <Compile Include="ScenarioDescriptors\Persistence.cs" />
     <Compile Include="Scheduling\When_scheduling_a_recurring_task.cs" />
     <Compile Include="Tx\FakePromotableResourceManager.cs" />
-    <Compile Include="Tx\When_receiving_with_dtc_disabled.cs" />
+    <Compile Include="Msmq\When_receiving_with_dtc_disabled.cs" />
     <Compile Include="Tx\When_receiving_with_dtc_enabled.cs" />
     <Compile Include="Tx\When_receiving_with_the_default_settings.cs" />
     <Compile Include="Tx\ImmediateDispatch\When_requesting_immediate_dispatch_with_at_most_once.cs" />

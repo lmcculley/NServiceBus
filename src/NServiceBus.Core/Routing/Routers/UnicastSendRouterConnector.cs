@@ -8,10 +8,9 @@ namespace NServiceBus
     using NServiceBus.Pipeline;
     using NServiceBus.Pipeline.OutgoingPipeline;
     using NServiceBus.Routing;
-    using NServiceBus.TransportDispatch;
     using NServiceBus.Unicast.Queuing;
 
-    class UnicastSendRouterConnector : StageConnector<OutgoingSendContext, OutgoingLogicalMessageContext>
+    class UnicastSendRouterConnector : StageConnector<IOutgoingSendContext, IOutgoingLogicalMessageContext>
     {
         IUnicastRouter unicastRouter;
         DistributionPolicy distributionPolicy;
@@ -25,22 +24,30 @@ namespace NServiceBus
             this.distributionPolicy = distributionPolicy;
         }
 
-        public override async Task Invoke(OutgoingSendContext context, Func<OutgoingLogicalMessageContext, Task> next)
+        public override async Task Invoke(IOutgoingSendContext context, Func<IOutgoingLogicalMessageContext, Task> next)
         {
             var messageType = context.Message.MessageType;
             var distributionStrategy = distributionPolicy.GetDistributionStrategy(messageType);
 
-            var state = context.GetOrCreate<State>();
+            var state = context.Extensions.GetOrCreate<State>();
             var destination = state.ExplicitDestination ?? (state.RouteToLocalInstance ? localAddress : null);
 
             var addressLabels = string.IsNullOrEmpty(destination) 
-                ? unicastRouter.Route(messageType, distributionStrategy, context) 
+                ? await unicastRouter.Route(messageType, distributionStrategy, context.Extensions).ConfigureAwait(false) 
                 : RouteToDestination(destination);
 
-            context.SetHeader(Headers.MessageIntent, MessageIntentEnum.Send.ToString());
+            context.Headers[Headers.MessageIntent] = MessageIntentEnum.Send.ToString();
+
+            var logicalMessageContext = new OutgoingLogicalMessageContext(
+                    context.MessageId,
+                    context.Headers,
+                    context.Message,
+                    addressLabels.EnsureNonEmpty(() => "No destination specified for message: " + messageType).ToArray(),
+                    context);
+
             try
             {
-                await next(new OutgoingLogicalMessageContext(context.Message, addressLabels.EnsureNonEmpty(() => "No destination specified for message: " + messageType).ToArray(), context)).ConfigureAwait(false);
+                await next(logicalMessageContext).ConfigureAwait(false);
             }
             catch (QueueNotFoundException ex)
             {

@@ -2,6 +2,7 @@ namespace NServiceBus.Transports
 {
     using System;
     using System.Collections.Generic;
+    using NServiceBus.Routing;
     using Settings;
 
     /// <summary>
@@ -10,16 +11,6 @@ namespace NServiceBus.Transports
     public abstract partial class TransportDefinition
     {
         /// <summary>
-        /// Indicates that the transport is capable of supporting the publish and subscribe pattern natively.
-        /// </summary>
-        public bool HasNativePubSubSupport { get; protected set; }
-
-        /// <summary>
-        /// Indicates that the transport has a central store for subscriptions.
-        /// </summary>
-        public bool HasSupportForCentralizedPubSub { get; protected set; }
-
-        /// <summary>
         /// True if the transport.
         /// </summary>
         public bool RequireOutboxConsent { get; set; }
@@ -27,22 +18,22 @@ namespace NServiceBus.Transports
         /// <summary>
         /// Configures transport for receiving.
         /// </summary>
-        protected internal abstract void ConfigureForReceiving(TransportReceivingConfigurationContext context);
+        protected internal abstract TransportReceivingConfigurationResult ConfigureForReceiving(TransportReceivingConfigurationContext context);
 
         /// <summary>
         /// Configures transport for sending.
         /// </summary>
-        protected internal abstract void ConfigureForSending(TransportSendingConfigurationContext context);
-
+        protected internal abstract TransportSendingConfigurationResult ConfigureForSending(TransportSendingConfigurationContext context);
+        
         /// <summary>
         /// Returns the list of supported delivery constraints for this transport.
         /// </summary>
         public abstract IEnumerable<Type> GetSupportedDeliveryConstraints();
 
         /// <summary>
-        /// Gets the supported transactionallity for this transport.
+        /// Gets the highest supported transaction mode for the this transport.
         /// </summary>
-        public abstract TransactionSupport GetTransactionSupport();
+        public abstract TransportTransactionMode GetSupportedTransactionMode();
 
         /// <summary>
         /// Will be called if the transport has indicated that it has native support for pub sub.
@@ -53,7 +44,7 @@ namespace NServiceBus.Transports
         /// <summary>
         /// Returns the discriminator for this endpoint instance.
         /// </summary>
-        public abstract string GetDiscriminatorForThisEndpointInstance();
+        public abstract EndpointInstance BindToLocalEndpoint(EndpointInstance instance, ReadOnlySettings settings);
 
         /// <summary>
         /// Converts a given logical address to the transport address.

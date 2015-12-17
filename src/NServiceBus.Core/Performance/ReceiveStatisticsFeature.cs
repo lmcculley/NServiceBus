@@ -21,14 +21,14 @@
     }
 
 
-    class AuditProcessingStatisticsBehavior : Behavior<AuditContext>
+    class AuditProcessingStatisticsBehavior : Behavior<IAuditContext>
     {
-        public override Task Invoke(AuditContext context, Func<Task> next)
+        public override Task Invoke(IAuditContext context, Func<Task> next)
         {
 
             ProcessingStatisticsBehavior.State state;
 
-            if (context.TryGet(out state))
+            if (context.Extensions.TryGet(out state))
             {
                 context.AddAuditData(Headers.ProcessingStarted,DateTimeExtensions.ToWireFormattedString(state.ProcessingStarted));
                 context.AddAuditData(Headers.ProcessingEnded, DateTimeExtensions.ToWireFormattedString(state.ProcessingEnded));

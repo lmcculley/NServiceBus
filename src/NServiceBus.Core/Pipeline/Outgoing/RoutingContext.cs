@@ -1,38 +1,44 @@
-namespace NServiceBus.TransportDispatch
+namespace NServiceBus
 {
     using System.Collections.Generic;
-    using NServiceBus.OutgoingPipeline;
-    using Routing;
-    using Pipeline;
-    using Transports;
+    using NServiceBus.Pipeline;
+    using NServiceBus.Routing;
+    using NServiceBus.TransportDispatch;
+    using NServiceBus.Transports;
 
     /// <summary>
-    /// Context for the dispatch part of the pipeline.
+    /// Context for the routing part of the pipeline.
     /// </summary>
-    public class RoutingContext : OutgoingContext
+    public class RoutingContext : OutgoingContext, IRoutingContext
     {
         /// <summary>
-        /// Initializes the context with the message to be dispatched.
+        /// Creates a new instance of a routing parentContext.
         /// </summary>
-        public RoutingContext(OutgoingMessage messageToDispatch, IReadOnlyCollection<RoutingStrategy> routingStrategies, BehaviorContext context) : base(context)
+        /// <param name="messageToDispatch">The message to dispatch.</param>
+        /// <param name="routingStrategy">The routing strategy.</param>
+        /// <param name="parentContext">The parent context.</param>
+        public RoutingContext(OutgoingMessage messageToDispatch, RoutingStrategy routingStrategy, IBehaviorContext parentContext)
+            : this(messageToDispatch, new[] { routingStrategy }, parentContext)
+        {
+        }
+
+        /// <summary>
+        /// Creates a new instance of a routing parentContext.
+        /// </summary>
+        /// <param name="messageToDispatch">The message to dispatch.</param>
+        /// <param name="routingStrategies">The routing strategies.</param>
+        /// <param name="parentContext">The parent context.</param>
+        public RoutingContext(OutgoingMessage messageToDispatch, IReadOnlyCollection<RoutingStrategy> routingStrategies, IBehaviorContext parentContext)
+            : base(messageToDispatch.MessageId, messageToDispatch.Headers, parentContext)
         {
             Message = messageToDispatch;
             RoutingStrategies = routingStrategies;
         }
 
         /// <summary>
-        /// Initializes the context with the message to be dispatched.
-        /// </summary>
-        public RoutingContext(OutgoingMessage messageToDispatch, RoutingStrategy addressLabel, BehaviorContext context) : base(context)
-        {
-            Message = messageToDispatch;
-            RoutingStrategies = new [] {addressLabel};
-        }
-
-        /// <summary>
         /// The message to dispatch the the transport.
         /// </summary>
-        public OutgoingMessage Message { get; private set; }
+        public OutgoingMessage Message { get; }
 
         /// <summary>
         /// The routing strategies for the operation to be dispatched.
