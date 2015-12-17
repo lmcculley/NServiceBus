@@ -3,7 +3,7 @@
     using System;
     using System.Collections;
     using System.Collections.Generic;
-    using NServiceBus.Encryption;
+    using System.Linq;
     using NUnit.Framework;
 
     [TestFixture]
@@ -140,6 +140,7 @@
 
             inspector
                 .ScanObject(message)
+                .ToList()
                 .ForEach(x => x.Item2.SetValue(x.Item1, (WireEncryptedString)MySecretMessage));
 
             Assert.AreEqual(MySecretMessage, message.MySecret.Value);
@@ -168,6 +169,7 @@
 
             inspector
                 .ScanObject(message)
+                .ToList()
                 .ForEach(x => x.Item2.SetValue(x.Item1, Create()));
 
             Assert.AreEqual(message.Secret.Value, MySecretMessage);
@@ -190,6 +192,7 @@
 
             inspector
                 .ScanObject(message)
+                .ToList()
                 .ForEach(x => x.Item2.SetValue(x.Item1, Create()));
 
             Assert.AreEqual(MySecretMessage, message.Secret.Value);

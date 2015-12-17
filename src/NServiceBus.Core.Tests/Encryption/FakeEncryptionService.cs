@@ -14,12 +14,12 @@ namespace NServiceBus.Core.Tests.Encryption
             this.hardcodedValue = hardcodedValue;
         }
 
-        public EncryptedValue Encrypt(string value, OutgoingLogicalMessageContext context)
+        public EncryptedValue Encrypt(string value, IOutgoingLogicalMessageContext context)
         {
             return hardcodedValue;
         }
 
-        public string Decrypt(EncryptedValue encryptedValue, LogicalMessageProcessingContext context)
+        public string Decrypt(EncryptedValue encryptedValue, IIncomingLogicalMessageContext context)
         {
             if (encryptedValue.Base64Iv == hardcodedValue.Base64Iv && encryptedValue.EncryptedBase64Value == hardcodedValue.EncryptedBase64Value)
              return "A secret";

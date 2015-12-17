@@ -5,7 +5,6 @@
     using System.Linq;
     using System.Reflection;
     using System.Text;
-    using NServiceBus.Encryption;
     using NServiceBus.Logging;
     using NServiceBus.ObjectBuilder;
 

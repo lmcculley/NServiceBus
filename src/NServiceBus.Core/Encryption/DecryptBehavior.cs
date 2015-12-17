@@ -31,7 +31,7 @@ namespace NServiceBus
         }
 
 
-        void DecryptMember(object target, MemberInfo property, LogicalMessageProcessingContext context)
+        void DecryptMember(object target, MemberInfo property, IIncomingLogicalMessageContext context)
         {
             var encryptedValue = property.GetValue(target);
 

@@ -31,7 +31,7 @@
             return next();
         }
 
-        void EncryptMember(object message, MemberInfo member, OutgoingLogicalMessageContext context)
+        void EncryptMember(object message, MemberInfo member, IOutgoingLogicalMessageContext context)
         {
             var valueToEncrypt = member.GetValue(message);
 

@@ -1,4 +1,4 @@
-namespace NServiceBus.Encryption
+namespace NServiceBus
 {
     using NServiceBus.Pipeline.Contexts;
     using NServiceBus.Pipeline.OutgoingPipeline;
@@ -11,11 +11,11 @@ namespace NServiceBus.Encryption
         /// <summary>
         /// Encrypts the given value returning an EncryptedValue.
         /// </summary>
-        EncryptedValue Encrypt(string value, OutgoingLogicalMessageContext context);
+        EncryptedValue Encrypt(string value, IOutgoingLogicalMessageContext context);
 
         /// <summary>
         /// Decrypts the given EncryptedValue object returning the source string.
         /// </summary>
-        string Decrypt(EncryptedValue encryptedValue, LogicalMessageProcessingContext context);
+        string Decrypt(EncryptedValue encryptedValue, IIncomingLogicalMessageContext context);
     }
 }

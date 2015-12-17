@@ -4,7 +4,6 @@
     using System.Collections.Generic;
     using System.Security.Cryptography;
     using System.Text;
-    using NServiceBus.Encryption.Rijndael;
     using NServiceBus.Pipeline.Contexts;
     using NServiceBus.Pipeline.OutgoingPipeline;
     using NUnit.Framework;
@@ -191,12 +190,12 @@
             {
             }
 
-            protected override void AddKeyIdentifierHeader(OutgoingLogicalMessageContext context)
+            protected override void AddKeyIdentifierHeader(IOutgoingLogicalMessageContext context)
             {
                 OutgoingKeyIdentifierSet = true;
             }
 
-            protected override bool TryGetKeyIdentifierHeader(out string keyIdentifier, LogicalMessageProcessingContext context)
+            protected override bool TryGetKeyIdentifierHeader(out string keyIdentifier, IIncomingLogicalMessageContext context)
             {
                 keyIdentifier = IncomingKeyIdentifier;
                 return IncomingKeyIdentifier != null;

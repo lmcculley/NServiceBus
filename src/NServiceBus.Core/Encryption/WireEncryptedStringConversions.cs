@@ -1,7 +1,6 @@
 namespace NServiceBus
 {
     using System;
-    using NServiceBus.Encryption;
     using NServiceBus.Pipeline.Contexts;
     using NServiceBus.Pipeline.OutgoingPipeline;
 
@@ -12,13 +11,13 @@ namespace NServiceBus
             return instance is WireEncryptedString;
         }
 
-        public static void Encrypt(this IEncryptionService encryptionService, WireEncryptedString wireEncryptedString, OutgoingLogicalMessageContext context)
+        public static void Encrypt(this IEncryptionService encryptionService, WireEncryptedString wireEncryptedString, IOutgoingLogicalMessageContext context)
         {
             wireEncryptedString.EncryptedValue = encryptionService.Encrypt(wireEncryptedString.Value, context);
             wireEncryptedString.Value = null;
         }
 
-        public static void Decrypt(this IEncryptionService encryptionService, WireEncryptedString wireEncryptedString, LogicalMessageProcessingContext context)
+        public static void Decrypt(this IEncryptionService encryptionService, WireEncryptedString wireEncryptedString, IIncomingLogicalMessageContext context)
         {
             if (wireEncryptedString.EncryptedValue == null)
             {

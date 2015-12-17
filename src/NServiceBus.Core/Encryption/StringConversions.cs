@@ -1,7 +1,6 @@
 namespace NServiceBus
 {
     using System;
-    using NServiceBus.Encryption;
     using NServiceBus.Pipeline.Contexts;
     using NServiceBus.Pipeline.OutgoingPipeline;
 
@@ -12,14 +11,14 @@ namespace NServiceBus
             return instance is string;
         }
 
-        public static void Encrypt(this IEncryptionService encryptionService, ref string stringToEncrypt, OutgoingLogicalMessageContext context)
+        public static void Encrypt(this IEncryptionService encryptionService, ref string stringToEncrypt, IOutgoingLogicalMessageContext context)
         {
             var encryptedValue = encryptionService.Encrypt(stringToEncrypt, context);
 
             stringToEncrypt = $"{encryptedValue.EncryptedBase64Value}@{encryptedValue.Base64Iv}";
         }
 
-        public static void Decrypt(this IEncryptionService encryptionService, ref string stringToDecrypt, LogicalMessageProcessingContext context)
+        public static void Decrypt(this IEncryptionService encryptionService, ref string stringToDecrypt, IIncomingLogicalMessageContext context)
         {
             var parts = stringToDecrypt.Split(new[] { '@' }, StringSplitOptions.None);
 

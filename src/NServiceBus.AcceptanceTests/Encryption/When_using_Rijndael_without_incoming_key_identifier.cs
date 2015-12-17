@@ -16,7 +16,7 @@
         public void Should_process_decrypted_message_without_key_identifier()
         {
             Scenario.Define<Context>()
-                    .WithEndpoint<Sender>(b => b.When((bus, context) => bus.SendAsync(new MessageWithSecretData
+                    .WithEndpoint<Sender>(b => b.When((bus, context) => bus.Send(new MessageWithSecretData
                         {
                             Secret = "betcha can't guess my secret",
                         })))

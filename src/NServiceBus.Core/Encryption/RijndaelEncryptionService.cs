@@ -32,7 +32,9 @@ namespace NServiceBus
     using System.IO;
     using System.Security.Cryptography;
     using System.Text;
-
+    using NServiceBus.Pipeline.OutgoingPipeline;
+    using Logging;
+    using Pipeline.Contexts;
     class RijndaelEncryptionService : IEncryptionService
     {
         static readonly ILog Log = LogManager.GetLogger<RijndaelEncryptionService>();
@@ -67,7 +69,7 @@ namespace NServiceBus
             VerifyExpiredKeys(decryptionKeys);
         }
 
-        public string Decrypt(EncryptedValue encryptedValue, LogicalMessageProcessingContext context)
+        public string Decrypt(EncryptedValue encryptedValue, IIncomingLogicalMessageContext context)
         {
             string keyIdentifier;
 
@@ -135,7 +137,7 @@ namespace NServiceBus
             }
         }
 
-        public EncryptedValue Encrypt(string value, OutgoingLogicalMessageContext context)
+        public EncryptedValue Encrypt(string value, IOutgoingLogicalMessageContext context)
         {
             if (string.IsNullOrEmpty(encryptionKeyIdentifier))
             {
@@ -201,12 +203,12 @@ namespace NServiceBus
             }
         }
 
-        protected virtual void AddKeyIdentifierHeader(OutgoingLogicalMessageContext context)
+        protected virtual void AddKeyIdentifierHeader(IOutgoingLogicalMessageContext context)
         {
-            context.SetHeader(Headers.RijndaelKeyIdentifier, encryptionKeyIdentifier);
+            context.Headers[Headers.RijndaelKeyIdentifier] = encryptionKeyIdentifier;
         }
 
-        protected virtual bool TryGetKeyIdentifierHeader(out string keyIdentifier, LogicalMessageProcessingContext context)
+        protected virtual bool TryGetKeyIdentifierHeader(out string keyIdentifier, IIncomingLogicalMessageContext context)
         {
             return context.Headers.TryGetValue(Headers.RijndaelKeyIdentifier, out keyIdentifier);
         }

@@ -95,7 +95,6 @@
     <Compile Include="Audit\AuditToDispatchConnector.cs" />
     <Compile Include="Audit\InvokeAuditPipelineBehavior.cs" />
     <Compile Include="Encryption\WireEncryptedStringConversions.cs" />
-    <Compile Include="Endpoint.cs" />
     <Compile Include="EndpointHelper.cs" />
     <Compile Include="UnitOfWork\TransactionScopes\HandlerTransactionScopeWrapperBehavior.cs" />
     <Compile Include="BusSession.cs" />

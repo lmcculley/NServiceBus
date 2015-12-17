@@ -5,7 +5,6 @@ namespace NServiceBus
     using System.Linq;
     using System.Text;
     using Config;
-    using NServiceBus.Encryption;
     using NServiceBus.Logging;
     using NServiceBus.ObjectBuilder;
     using NServiceBus.Settings;
