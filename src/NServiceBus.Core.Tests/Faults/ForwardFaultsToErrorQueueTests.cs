@@ -4,14 +4,15 @@ namespace NServiceBus.Core.Tests
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
-    using Faults;
-    using Hosting;
+    using NServiceBus.Faults;
+    using NServiceBus.Hosting;
     using NServiceBus.Pipeline.Contexts;
     using NServiceBus.Routing;
-    using TransportDispatch;
-    using Transports;
-    using Unicast.Transport;
+    using NServiceBus.TransportDispatch;
+    using NServiceBus.Transports;
+    using NServiceBus.Unicast.Transport;
     using NUnit.Framework;
 
     [TestFixture]
@@ -24,18 +25,15 @@ namespace NServiceBus.Core.Tests
             var errorQueueAddress = "error";
             var behavior = new MoveFaultsToErrorQueueBehavior(
                 new FakeCriticalError(),
-                fakeDispatchPipeline, 
+                fakeDispatchPipeline,
                 new HostInformation(Guid.NewGuid(), "my host"),
-                new BusNotifications(), 
+                new BusNotifications(),
                 errorQueueAddress);
 
             var context = CreateContext("someid");
             behavior.Initialize(new PipelineInfo("Test", "public-receive-address"));
 
-            await behavior.Invoke(context, () =>
-            {
-                throw new Exception("testex");
-            });
+            await behavior.Invoke(context, () => { throw new Exception("testex"); });
 
             Assert.AreEqual(errorQueueAddress, fakeDispatchPipeline.Destination);
 
@@ -46,22 +44,22 @@ namespace NServiceBus.Core.Tests
         public void ShouldInvokeCriticalErrorIfForwardingFails()
         {
             var criticalError = new FakeCriticalError();
-            var fakeDispatchPipeline = new FakeDispatchPipeline{ThrowOnDispatch = true};
+            var fakeDispatchPipeline = new FakeDispatchPipeline
+            {
+                ThrowOnDispatch = true
+            };
 
 
             var behavior = new MoveFaultsToErrorQueueBehavior(
-                criticalError, 
-                fakeDispatchPipeline, 
-                new HostInformation(Guid.NewGuid(), "my host"), 
-                new BusNotifications(), 
+                criticalError,
+                fakeDispatchPipeline,
+                new HostInformation(Guid.NewGuid(), "my host"),
+                new BusNotifications(),
                 "error");
             behavior.Initialize(new PipelineInfo("Test", "public-receive-address"));
 
             //the ex should bubble to force the transport to rollback. If not the message will be lost
-            Assert.Throws<Exception>(async () => await behavior.Invoke(CreateContext("someid"), () =>
-            {
-                throw new Exception("testex");
-            }));
+            Assert.Throws<Exception>(async () => await behavior.Invoke(CreateContext("someid"), () => { throw new Exception("testex"); }));
 
             Assert.True(criticalError.ErrorRaised);
         }
@@ -75,17 +73,14 @@ namespace NServiceBus.Core.Tests
 
 
             var behavior = new MoveFaultsToErrorQueueBehavior(
-                new FakeCriticalError(), 
-                fakeDispatchPipeline, 
-                hostInfo, 
-                new BusNotifications(), 
+                new FakeCriticalError(),
+                fakeDispatchPipeline,
+                hostInfo,
+                new BusNotifications(),
                 "error");
             behavior.Initialize(new PipelineInfo("Test", "public-receive-address"));
 
-            await behavior.Invoke(context, () =>
-            {
-                throw new Exception("testex");
-            });
+            await behavior.Invoke(context, () => { throw new Exception("testex"); });
 
             //host info
             Assert.AreEqual(hostInfo.HostId.ToString("N"), fakeDispatchPipeline.MessageSent.Headers[Headers.HostId]);
@@ -99,35 +94,32 @@ namespace NServiceBus.Core.Tests
         [Test]
         public async Task ShouldRaiseNotificationWhenMessageIsForwarded()
         {
-
             var notifications = new BusNotifications();
             var fakeDispatchPipeline = new FakeDispatchPipeline();
-         
+
             var behavior = new MoveFaultsToErrorQueueBehavior(
                 new FakeCriticalError(),
-                fakeDispatchPipeline, 
+                fakeDispatchPipeline,
                 new HostInformation(Guid.NewGuid(), "my host"),
-                notifications, 
+                notifications,
                 "error");
             var failedMessageNotification = new FailedMessage();
 
             notifications.Errors.MessageSentToErrorQueue += (sender, message) => failedMessageNotification = message;
 
             behavior.Initialize(new PipelineInfo("Test", "public-receive-address"));
-            await behavior.Invoke(CreateContext("someid"), () =>
-            {
-                throw new Exception("testex");
-            });
+            await behavior.Invoke(CreateContext("someid"), () => { throw new Exception("testex"); });
 
             Assert.AreEqual("someid", failedMessageNotification.MessageId);
 
             Assert.AreEqual("testex", failedMessageNotification.Exception.Message);
         }
-        
+
         ITransportReceiveContext CreateContext(string messageId)
         {
-            return new TransportReceiveContext(new IncomingMessage(messageId, new Dictionary<string, string>(), new MemoryStream()), null, new RootContext(null));
+            return new TransportReceiveContext(new IncomingMessage(messageId, new Dictionary<string, string>(), new MemoryStream()), null, new CancellationTokenSource(), new RootContext(null));
         }
+
         class FakeDispatchPipeline : IPipelineBase<IRoutingContext>
         {
             public string Destination { get; private set; }
@@ -153,12 +145,12 @@ namespace NServiceBus.Core.Tests
             {
             }
 
+            public bool ErrorRaised { get; private set; }
+
             public override void Raise(string errorMessage, Exception exception)
             {
                 ErrorRaised = true;
             }
-
-            public bool ErrorRaised { get; private set; }
         }
     }
 }
